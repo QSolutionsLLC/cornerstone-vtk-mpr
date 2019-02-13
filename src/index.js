@@ -8,13 +8,13 @@ import getMprUrl from './lib/getMprUrl.js';
 async function kickstartApp(){
 
     // Setup
-    setupCornerstone();
+    const seriesNumber = 0;
+    setupCornerstone(seriesNumber);
 
     const originalSeriesElement = document.getElementById("cornerstone-target");
     const mprSeriesElement = document.getElementById("mpr-target");
 
     // Display original series
-    const seriesNumber = 0;
     const seriesImageIds = appState.series[seriesNumber];
     const imageUrl = getUrlForImageId(seriesImageIds[0]);
 

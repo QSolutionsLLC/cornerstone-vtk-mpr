@@ -7,16 +7,19 @@ import * as cornerstoneWADOImageLoader from "cornerstone-wado-image-loader";
 import * as cornerstoneTools from "cornerstone-tools";
 
 //
-import mprImageLoader from './mprImageLoader.js'
 import appState from './appState.js';
+import getUrlForImageId from './lib/getUrlForImageId.js';
+import mprImageLoader from './mprImageLoader.js'
+import MprMouseWheelTool from './MprMouseWheelTool.js';
 
-export default function() {
+export default function(seriesNumber) {
 
     _setPeerDependencies();
     _initWadoImageLoader();
     _initCornerstoneTools();
     cornerstone.registerImageLoader('mpr', mprImageLoader)
 
+    // Enable Elements
     const originalSeriesElement = document.getElementById("cornerstone-target");
     const mprSeriesElement = document.getElementById("mpr-target");
     
@@ -27,6 +30,12 @@ export default function() {
     cornerstone.enable(mprSeriesElement, {
         renderer: "webgl"
     });
+
+    _setOriginalSeriesStackState(seriesNumber, originalSeriesElement);
+
+    // Element Specific Tools
+    cornerstoneTools.setToolActiveForElement(originalSeriesElement, "StackScrollMouseWheel", {});
+    cornerstoneTools.setToolActiveForElement(mprSeriesElement, "MprMouseWheel", {});
 }
 
 function _setPeerDependencies(){
@@ -55,11 +64,46 @@ function _initCornerstoneTools(){
         globalToolSyncEnabled: true
     });
 
+    // Grab Tool Classes
     const WwwcTool = cornerstoneTools.WwwcTool;
-    // const OverlayTool = cornerstoneTools.OverlayTool;
-    cornerstoneTools.addTool(WwwcTool);
-    // cornerstoneTools.addTool(OverlayTool);
+    const PanTool = cornerstoneTools.PanTool;
+    const PanMultiTouchTool = cornerstoneTools.PanMultiTouchTool;
+    const StackScrollMouseWheelTool = cornerstoneTools.StackScrollMouseWheelTool;
+    const ZoomTool = cornerstoneTools.ZoomTool;
+    const ZoomTouchPinchTool = cornerstoneTools.ZoomTouchPinchTool;
+    const ZoomMouseWheelTool = cornerstoneTools.ZoomMouseWheelTool;
 
-    cornerstoneTools.setToolActive("Wwwc", { mouseButtonMask: 1 });
-    // cornerstoneTools.setToolEnabled("Overlay", {});
+    // Add them
+    cornerstoneTools.addTool(PanTool);
+    cornerstoneTools.addTool(ZoomTool);
+    cornerstoneTools.addTool(WwwcTool);
+    cornerstoneTools.addTool(PanMultiTouchTool);
+    cornerstoneTools.addTool(StackScrollMouseWheelTool);
+    cornerstoneTools.addTool(ZoomTouchPinchTool);
+    cornerstoneTools.addTool(ZoomMouseWheelTool);
+    cornerstoneTools.addTool(MprMouseWheelTool);
+
+    // Set tool modes
+    cornerstoneTools.setToolActive("Pan", { mouseButtonMask: 4 }); // Middle
+    cornerstoneTools.setToolActive("Zoom", { mouseButtonMask: 2 }); // Right
+    cornerstoneTools.setToolActive("Wwwc", { mouseButtonMask: 1 }); // Left & Touch
+    cornerstoneTools.setToolActive("PanMultiTouch", {});
+    cornerstoneTools.setToolActive("ZoomTouchPinch", {});
+}
+
+function _setOriginalSeriesStackState(seriesNumber, originalSeriesElement){
+    const seriesImageIds = appState.series[seriesNumber];
+    cornerstoneTools.addStackStateManager(originalSeriesElement, [
+        'stack'
+    ])
+    const allImageIds = seriesImageIds.map(id => getUrlForImageId(id));
+
+    const canvasStack = {
+        currentImageIdIndex: 0,
+        imageIds: allImageIds,
+    }
+
+    cornerstoneTools.clearToolState(originalSeriesElement, 'stack')
+    cornerstoneTools.addToolState(originalSeriesElement, 'stack', canvasStack)
+
 }
