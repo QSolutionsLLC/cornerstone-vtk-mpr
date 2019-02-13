@@ -1,10 +1,15 @@
+import * as cornerstone from 'cornerstone-core';
+//
 import vtkDataArray from 'vtk.js/Sources/Common/Core/DataArray';
 import vtkImageData from 'vtk.js/Sources/Common/DataModel/ImageData';
 //
-import determineOrientation from './lib/data/determineOrientation.js';
-import computeZAxis from './lib/data/computeZAxis.js';
-import crossVectors from './lib/math/crossVectors.js';
-import tryGetMetadataModuleAsync from './lib/tryGetMetadataModuleAsync.js';
+import insertSlice from '../data/insertSlice.js';
+import getUrlForImageId from '../getUrlForImageId.js';
+import getSliceIndex from  '../data/getSliceIndex.js';
+import determineOrientation from '../data/determineOrientation.js';
+import computeZAxis from '../data/computeZAxis.js';
+import crossVectors from '../math/crossVectors.js';
+import tryGetMetadataModuleAsync from '../tryGetMetadataModuleAsync.js';
 
 /**
  * Note: This builds the vtk structure we need to move forward, but it does so using
@@ -17,11 +22,6 @@ import tryGetMetadataModuleAsync from './lib/tryGetMetadataModuleAsync.js';
  * @returns
  */
 export default async function(seriesImageIds){
-    const imagePixelModule = await tryGetMetadataModuleAsync('imagePixelModule', seriesImageIds[0]);
-    if(!imagePixelModule){
-        throw new Error(`Unable to retrieve imagePixelModule for: ${seriesImageIds[0]}`)
-    }
-    const { bitsAllocated, pixelRepresentation } = imagePixelModule;
     const metaDataMap = await _getSeriesMetaDataMap(seriesImageIds);
     const {
         dimensions,
@@ -30,11 +30,57 @@ export default async function(seriesImageIds){
         spacing,
         zAxis
     } = _calculateDimensions(metaDataMap)
-    const signed = pixelRepresentation === 1
 
     if (multiComponent) {
         throw new Error('Multi component image not supported by this plugin.')
     }
+
+    const imageData = await _createVtkVolume(seriesImageIds, dimensions, spacing, zAxis);
+    const imageDataObject = {
+        imageIds: seriesImageIds,
+        // dimensions,
+        // spacing,
+        orientation,
+        vtkImageData: imageData,
+        zAxis
+    }
+
+    return imageDataObject;
+}
+
+async function _createVtkVolume(seriesImageIds, dimensions, spacing, zAxis){
+
+    const vtkVolume = vtkImageData.newInstance()
+    const typedPixelArray = await _getTypedPixelArray(seriesImageIds[0], dimensions);
+    const scalarArray = vtkDataArray.newInstance({
+        name: 'Pixels',
+        numberOfComponents: 1,
+        values: typedPixelArray
+    })
+
+    vtkVolume.setDimensions(dimensions)
+    vtkVolume.setSpacing(spacing)
+    vtkVolume.getPointData().setScalars(scalarArray)
+
+    // Add our slices
+    for(let i = 0; i < seriesImageIds.length; i++){
+        const imageId = seriesImageIds[i];
+        const imageUrl = getUrlForImageId(imageId);
+        const image = await cornerstone.loadAndCacheImage(imageUrl);
+        const { imagePositionPatient } = await tryGetMetadataModuleAsync('imagePlaneModule', imageId);
+        const sliceIndex = getSliceIndex(zAxis, imagePositionPatient);
+        
+        insertSlice(vtkVolume, image.getPixelData(), sliceIndex);
+    }
+
+    return vtkVolume;
+}
+
+async function _getTypedPixelArray(imageId, dimensions){
+    const imagePixelModule = await tryGetMetadataModuleAsync('imagePixelModule', imageId);
+    const { bitsAllocated, pixelRepresentation } = imagePixelModule;
+    const signed = pixelRepresentation === 1
+
     if (bitsAllocated === 8) {
         if (signed) {
             throw new Error('8 Bit signed images are not yet supported by this plugin.');
@@ -53,30 +99,7 @@ export default async function(seriesImageIds){
         throw new Error(`Unssuported bit: ${bitsAllocated}`)
     }
 
-    const scalarArray = vtkDataArray.newInstance({
-        name: 'Pixels',
-        numberOfComponents: 1,
-        values: typedPixelArray
-    })
-
-    const imageData = vtkImageData.newInstance()
-
-    imageData.setDimensions(dimensions)
-    imageData.setSpacing(spacing)
-    imageData.getPointData().setScalars(scalarArray)
-
-    const imageDataObject = {
-        imageIds: seriesImageIds,
-        dimensions,
-        spacing,
-        orientation,
-        vtkImageData: imageData,
-        metaDataMap,
-        zAxis,
-        loaded: false
-    }
-
-    return imageDataObject;
+    return typedPixelArray;
 }
 
 /**

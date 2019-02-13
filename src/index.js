@@ -1,16 +1,33 @@
+import cornerstone from 'cornerstone-core';
+//
 import setupCornerstone from './setupCornerstone.js';
 import appState from './appState.js';
-import createVtkImageDataObject from './createVtkImageDataObject.js';
+import getUrlForImageId from './lib/getUrlForImageId.js';
+import getMprUrl from './lib/getMprUrl.js';
 
 async function kickstartApp(){
 
+    // Setup
     setupCornerstone();
 
-    const seriesNumber = 0;
-    const seriesIds = appState.studies[seriesNumber];
+    const originalSeriesElement = document.getElementById("cornerstone-target");
+    const mprSeriesElement = document.getElementById("mpr-target");
 
-    const vtkVolume = await createVtkImageDataObject(seriesIds);
-    console.log('vtkVolume: ', vtkVolume);
+    // Display original series
+    const seriesNumber = 0;
+    const seriesImageIds = appState.series[seriesNumber];
+    const imageUrl = getUrlForImageId(seriesImageIds[0]);
+
+    cornerstone.loadAndCacheImage(imageUrl).then(image => {
+        cornerstone.displayImage(originalSeriesElement, image);
+    });
+
+    // Display MPR Slice
+    const mprUrl = getMprUrl(45);
+    
+    cornerstone.loadAndCacheImage(mprUrl).then(image => {
+        cornerstone.displayImage(mprSeriesElement, image);
+    })
 }
 
 kickstartApp();

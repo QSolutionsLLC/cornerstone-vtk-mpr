@@ -5,10 +5,27 @@
       html,
       body,
       main {
+        margin: 0;
+        padding: 0;
         height: 100%;
         width: 100%;
         overflow-x: hidden;
       }
+
+      .container {
+        display: grid;
+        grid-template-columns: 50% 50%;
+        grid-template-rows: 50% 50%;
+      }
+
+      /* .container {
+        display: flex;
+      }
+
+      .item {
+        min-width: 512px;
+        max-height: 512px;
+      } */
 
       #cornerstone-element-container,
       #vtk-target-parent-wrapper,
@@ -20,20 +37,11 @@
   </head>
 
   <body>
-    <main>
+    <main class="container">
+
       <!-- Only bit necessary for Cornerstone -->
-      <div
-        id="cornerstone-target"
-        style="width: 512px; height: 512px;"
-      ></div>
-
-      <div id="vtk-target-parent-wrapper">
-        <div id="vtk-target" style="width: 512px; height: 512px;"></div>
-      </div>
-
-      <div id="vtk-single-slice-target-wrapper">
-        <div id="vtk-slice-target" style="width: 512px; height: 512px;"></div>
-      </div>
+      <div id="cornerstone-target" class="item"></div>
+      <div id="mpr-target" class="item"></div>
     </main>
 
     <script src="main.js"></script>

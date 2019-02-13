@@ -7,6 +7,7 @@ import * as cornerstoneWADOImageLoader from "cornerstone-wado-image-loader";
 import * as cornerstoneTools from "cornerstone-tools";
 
 //
+import mprImageLoader from './mprImageLoader.js'
 import appState from './appState.js';
 
 export default function() {
@@ -14,26 +15,18 @@ export default function() {
     _setPeerDependencies();
     _initWadoImageLoader();
     _initCornerstoneTools();
+    cornerstone.registerImageLoader('mpr', mprImageLoader)
 
-    const element = document.getElementById("cornerstone-target");
+    const originalSeriesElement = document.getElementById("cornerstone-target");
+    const mprSeriesElement = document.getElementById("mpr-target");
     
-    cornerstone.enable(element, {
+    cornerstone.enable(originalSeriesElement, {
         renderer: "webgl"
     });
 
-    const scheme = 'wadouri';
-    const base = 'http://localhost:9000/studies';
-    const studyNumber = 0;
-    const instanceId = appState.studies[studyNumber][0];
-
-    const imageId = `${scheme}:${base}/${studyNumber}/${instanceId}`
-
-    cornerstone.loadAndCacheImage(imageId).then(image => {
-        cornerstone.displayImage(element, image);
-        console.log(cornerstone.imageCache)
+    cornerstone.enable(mprSeriesElement, {
+        renderer: "webgl"
     });
-
-    // cornerstone.registerImageLoader('mpr', loadMprImage)
 }
 
 function _setPeerDependencies(){
