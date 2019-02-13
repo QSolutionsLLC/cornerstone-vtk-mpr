@@ -1,0 +1,50 @@
+{
+  "name": "cornerstone-vtk-mpr",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/QSolutionsLLC/cornerstone-vtk-mpr.git"
+  },
+  "author": "Danny Brown",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/QSolutionsLLC/cornerstone-vtk-mpr/issues"
+  },
+  "homepage": "https://github.com/QSolutionsLLC/cornerstone-vtk-mpr#readme",
+  "dependencies": {
+    "cornerstone-core": "2.2.8",
+    "cornerstone-math": "0.1.8",
+    "cornerstone-tools": "3.1.1",
+    "cornerstone-wado-image-loader": "2.2.3",
+    "dicom-parser": "1.8.3",
+    "gl-matrix": "3.0.0",
+    "vtk.js": "8.3.9"
+  },
+  "devDependencies": {
+    "@babel/core": "7.2.2",
+    "@babel/preset-env": "7.3.1",
+    "autoprefixer": "9.4.7",
+    "babel-loader": "8.0.5",
+    "css-loader": "2.1.0",
+    "eslint": "5.13.0",
+    "eslint-config-standard": "12.0.0",
+    "eslint-plugin-import": "2.16.0",
+    "eslint-plugin-node": "8.0.1",
+    "eslint-plugin-promise": "4.0.1",
+    "eslint-plugin-standard": "4.0.0",
+    "file-loader": "3.0.1",
+    "html-loader": "0.5.5",
+    "kw-web-suite": "8.0.0",
+    "raw-loader": "1.0.0",
+    "style-loader": "0.23.1",
+    "url-loader": "1.1.2",
+    "webpack": "4.29.3",
+    "webpack-cli": "3.2.3",
+    "webpack-dev-server": "3.1.14"
+  }
+}
