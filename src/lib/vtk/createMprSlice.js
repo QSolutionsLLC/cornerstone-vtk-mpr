@@ -14,6 +14,15 @@ export default function(vtkImageData, options = {}){
     const [xSpacing, ySpacing, zSpacing] = vtkImageData.getSpacing();
     const [xMin, xMax, yMin, yMax, zMin, zMax] = vtkImageData.getExtent();
 
+    // http://vtk.1045678.n5.nabble.com/vtkImageReslice-and-appending-slices-td5728537.html
+    // https://public.kitware.com/pipermail/vtkusers/2012-January/071996.html
+    // However, when you use vtkImageReslice to do oblique 
+    // slices, I recommend that you always set the OutputExtent, 
+    // OutputSpacing, and OutputOrigin for vtkImageReslice. 
+    // The code that vtkImageReslice uses to "guess" these 
+    // values is really only useful for orthogonal reslicing. 
+
+
     // SLICE SPACING/POSITION
     const centerOfVolume = []
     centerOfVolume[0] = x0 + xSpacing * 0.5 * (xMin + xMax); 
@@ -112,3 +121,22 @@ const _planeAxes = [
         0, -0.5, 0.866025, 0,
         0, 0, 0, 1) // 0, 1, 2
 ]
+
+// https://public.kitware.com/pipermail/vtkusers/2013-January/078280.html
+// the ResliceAxes matrix
+// >defines a coordinate transformation that will be applied to the plane
+// >Z=0 in order to generate an oblique plane that slices through your
+// >input data.  A good way to think about it is that the 1st and 2nd
+// >columns of the matrix are the basis vectors of the oblique plane, the
+// >3rd column is the normal of the oblique plane, and the 4th column is
+// >the "origin" of the oblique plane.  If you call SetOutputOrigin(0,0,0)
+// >then the 4th column of the reslice matrix will precisely define the 3D
+// >point at the corner of your oblique plane.
+
+// r, r, r, r, // Basis vector      :: rotation
+// r, r, r, r, // Basis vector      :: rotation
+// r, r, r, r, // Normal of oblique :: rotation
+// v, v, v, 1  // "origin" :: "translation" 
+
+// r -> rotation
+// v -> vector length
