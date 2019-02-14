@@ -36,9 +36,10 @@ export default function(vtkImageData, options = {}){
     //     centerOfVolume[0] += sliceDelta;
     // }
 
-    centerOfVolume[0] += sliceDelta;
-    centerOfVolume[1] += sliceDelta;
-    centerOfVolume[2] += sliceDelta;
+    // These may all need to be changed if our axes change?
+    centerOfVolume[0] += options.sliceDelta * xSpacing;
+    centerOfVolume[1] += options.sliceDelta * ySpacing;
+    centerOfVolume[2] += options.sliceDelta * zSpacing; // axial
 
 
     let axes = mat4.clone(_planeAxes[options.plane]);
