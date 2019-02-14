@@ -15,10 +15,10 @@ export default function(imageId){
 }
 
 async function createImage(imageId){
-    const [scheme, seriesNumber, degRotation] = imageId.split(':');
+    const [scheme, seriesNumber, plane, rotation, sliceDelta] = imageId.split(':');
     const vtkVolume = await tryGetVtkVolumeForSeriesNumber(seriesNumber);
 
-    const vtkSlice = createMprSlice(vtkVolume.vtkImageData, { rotation: degRotation });
+    const vtkSlice = createMprSlice(vtkVolume.vtkImageData, { plane, rotation, sliceDelta });
     const mappedSlice = mapVtkSliceToCornerstoneImage(vtkSlice);
 
     const image = {

@@ -25,15 +25,17 @@ async function kickstartApp(){
     });
 
     // Display MPR Slice
-    const mprUrl = getMprUrl(45);
+    const axialMprUrl = getMprUrl(0, 0, 0);
+    const coronalMprUrl = getMprUrl(1, 0, 0);
+    const sagittalMprUrl = getMprUrl(2, 0, 0);
     
-    cornerstone.loadAndCacheImage(mprUrl).then(image => {
+    cornerstone.loadAndCacheImage(axialMprUrl).then(image => {
         cornerstone.displayImage(mprAxialSeriesElement, image);
     });
-    cornerstone.loadAndCacheImage(mprUrl).then(image => {
+    cornerstone.loadAndCacheImage(coronalMprUrl).then(image => {
         cornerstone.displayImage(mprCoronalSeriesElement, image);
     });
-    cornerstone.loadAndCacheImage(mprUrl).then(image => {
+    cornerstone.loadAndCacheImage(sagittalMprUrl).then(image => {
         cornerstone.displayImage(mprSagittalSeriesElement, image);
     });
 }

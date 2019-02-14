@@ -25,7 +25,9 @@ export default class MprMouseWheelTool extends BaseTool {
 
     this.initialConfiguration = initialConfiguration;
 
-    this.rotation = 45;
+    this.plane = configuration.plane || 0;
+    this.rotation = 0;
+    this.sliceDelta = 0;
   }
 
   mouseWheelCallback(evt) {
@@ -34,14 +36,17 @@ export default class MprMouseWheelTool extends BaseTool {
     const direction = invert ? -images : images;
 
     if(direction > 0){
-        this.rotation++;
-        if(this.rotation >= 360) { this.rotation = 0; }
+      this.sliceDelta++;
+      
+        //this.rotation++;
+        //if(this.rotation >= 360) { this.rotation = 0; }
     }else{
-        this.rotation--;
-        if(this.rotation < 0){ this.rotation = 359; }
+      this.sliceDelta--;
+        //this.rotation--;
+        //if(this.rotation < 0){ this.rotation = 359; }
     }
 
-    const imageUrl = getMprUrl(this.rotation)
+    const imageUrl = getMprUrl(this.plane, this.rotation, this.sliceDelta)
     cornerstone.loadAndCacheImage(imageUrl).then(image => {
         cornerstone.displayImage(element, image);
         // Slices are coming out with different heights
@@ -49,6 +54,7 @@ export default class MprMouseWheelTool extends BaseTool {
         cornerstone.reset(element); 
     })
     console.log(`rotationX: ${this.rotation}`)
+    console.log(`sliceDelta: ${this.sliceDelta}`)
 
     // const viewport = cornerstone.getViewport(element);
     // console.log(viewport);

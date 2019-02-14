@@ -45,9 +45,9 @@ export default function(seriesNumber) {
 
     // Element Specific Tools
     cornerstoneTools.setToolActiveForElement(originalSeriesElement, "StackScrollMouseWheel", {});
-    cornerstoneTools.setToolActiveForElement(mprAxialSeriesElement, "MprMouseWheel", {});
-    cornerstoneTools.setToolActiveForElement(mprCoronalSeriesElement, "MprMouseWheel", {});
-    cornerstoneTools.setToolActiveForElement(mprSagittalSeriesElement, "MprMouseWheel", {});
+    cornerstoneTools.setToolActiveForElement(mprAxialSeriesElement, "MprMouseWheel", { plane: 0 });
+    cornerstoneTools.setToolActiveForElement(mprCoronalSeriesElement, "MprMouseWheel", { plane: 1 });
+    cornerstoneTools.setToolActiveForElement(mprSagittalSeriesElement, "MprMouseWheel", { plane: 2 });
 }
 
 function _setPeerDependencies(){
