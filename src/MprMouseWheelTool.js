@@ -48,6 +48,7 @@ export default class MprMouseWheelTool extends BaseTool {
         // This adjust viewport to fit image
         cornerstone.reset(element); 
     })
+    console.log(`rotationX: ${this.rotation}`)
 
     // const viewport = cornerstone.getViewport(element);
     // console.log(viewport);

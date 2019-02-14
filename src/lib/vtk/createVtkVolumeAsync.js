@@ -127,8 +127,14 @@ function _calculateDimensions(metaDataMap){
     const orientation = determineOrientation(crossProduct)
     const zAxis = computeZAxis(orientation, metaDataMap)
 
-    const xSpacing = imagePlaneModule.columnPixelSpacing
-    const ySpacing = imagePlaneModule.rowPixelSpacing
+    // TODO: these values may need to be in proportion to each other
+    // and the distance between slices on the z-index
+    // const xSpacing = imagePlaneModule.columnPixelSpacing
+    //const ySpacing = imagePlaneModule.rowPixelSpacing
+    const xSpacing = 9;
+    const ySpacing = 9;
+    console.log(imagePlaneModule)
+    console.warn('Using default x,y pixelSpacing of 1; anything else creates smooshed images')
     const zSpacing = zAxis.spacing
     const xVoxels = imagePlaneModule.columns
     const yVoxels = imagePlaneModule.rows
