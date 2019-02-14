@@ -12,7 +12,9 @@ async function kickstartApp(){
     setupCornerstone(seriesNumber);
 
     const originalSeriesElement = document.getElementById("cornerstone-target");
-    const mprSeriesElement = document.getElementById("mpr-target");
+    const mprAxialSeriesElement = document.getElementById("axial-target");
+    const mprCoronalSeriesElement = document.getElementById("coronal-target");
+    const mprSagittalSeriesElement = document.getElementById("sagittal-target");
 
     // Display original series
     const seriesImageIds = appState.series[seriesNumber];
@@ -26,8 +28,14 @@ async function kickstartApp(){
     const mprUrl = getMprUrl(45);
     
     cornerstone.loadAndCacheImage(mprUrl).then(image => {
-        cornerstone.displayImage(mprSeriesElement, image);
-    })
+        cornerstone.displayImage(mprAxialSeriesElement, image);
+    });
+    cornerstone.loadAndCacheImage(mprUrl).then(image => {
+        cornerstone.displayImage(mprCoronalSeriesElement, image);
+    });
+    cornerstone.loadAndCacheImage(mprUrl).then(image => {
+        cornerstone.displayImage(mprSagittalSeriesElement, image);
+    });
 }
 
 kickstartApp();

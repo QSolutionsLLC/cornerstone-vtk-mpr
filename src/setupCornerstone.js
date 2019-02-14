@@ -21,13 +21,23 @@ export default function(seriesNumber) {
 
     // Enable Elements
     const originalSeriesElement = document.getElementById("cornerstone-target");
-    const mprSeriesElement = document.getElementById("mpr-target");
+    const mprAxialSeriesElement = document.getElementById("axial-target");
+    const mprCoronalSeriesElement = document.getElementById("coronal-target");
+    const mprSagittalSeriesElement = document.getElementById("sagittal-target");
     
     cornerstone.enable(originalSeriesElement, {
         renderer: "webgl"
     });
 
-    cornerstone.enable(mprSeriesElement, {
+    cornerstone.enable(mprAxialSeriesElement, {
+        renderer: "webgl"
+    });
+
+    cornerstone.enable(mprCoronalSeriesElement, {
+        renderer: "webgl"
+    });
+
+    cornerstone.enable(mprSagittalSeriesElement, {
         renderer: "webgl"
     });
 
@@ -35,7 +45,9 @@ export default function(seriesNumber) {
 
     // Element Specific Tools
     cornerstoneTools.setToolActiveForElement(originalSeriesElement, "StackScrollMouseWheel", {});
-    cornerstoneTools.setToolActiveForElement(mprSeriesElement, "MprMouseWheel", {});
+    cornerstoneTools.setToolActiveForElement(mprAxialSeriesElement, "MprMouseWheel", {});
+    cornerstoneTools.setToolActiveForElement(mprCoronalSeriesElement, "MprMouseWheel", {});
+    cornerstoneTools.setToolActiveForElement(mprSagittalSeriesElement, "MprMouseWheel", {});
 }
 
 function _setPeerDependencies(){
