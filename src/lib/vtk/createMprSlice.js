@@ -5,7 +5,7 @@ import vtkImageReslice from 'vtk.js/Sources/Imaging/Core/ImageReslice';
 // https://public.kitware.com/pipermail/vtkusers/2010-April/059673.html
 export default function(vtkImageData, options = {}){
     options.plane = options.plane || 0;
-    options.rotation = options.rotation || 45;
+    options.rotation = options.rotation || 0;
     options.sliceDelta = options.sliceDelta || 0;
 
     vtkImageData.setOrigin(0, 0, 0);
@@ -18,10 +18,28 @@ export default function(vtkImageData, options = {}){
     const centerOfVolume = []
     centerOfVolume[0] = x0 + xSpacing * 0.5 * (xMin + xMax); 
     centerOfVolume[1] = y0 + ySpacing * 0.5 * (yMin + yMax); 
-    centerOfVolume[2] = z0 + zSpacing * 0.5 * (zMin + zMax); 
+    centerOfVolume[2] = z0 + zSpacing * 0.5 * (zMin + zMax);
 
     const sliceDelta = zSpacing * options.sliceDelta
     console.log('sliceDelta: ', sliceDelta)
+
+    // Update "sliceIndex"
+    // We'll need a more dynamic way to apply this for obliques/arbitrary rotation?
+    // if(options.plane === 0){
+    //     // Axial
+    //     centerOfVolume[2] += sliceDelta;
+    // }else if(options.plane === 1){
+    //     // Coronal
+    //     centerOfVolume[1] += sliceDelta;
+    // }else{
+    //     // Sagittal
+    //     centerOfVolume[0] += sliceDelta;
+    // }
+
+    centerOfVolume[0] += sliceDelta;
+    centerOfVolume[1] += sliceDelta;
+    centerOfVolume[2] += sliceDelta;
+
 
     let axes = mat4.clone(_planeAxes[options.plane]);
     axes[12] = centerOfVolume[0]
@@ -63,13 +81,6 @@ export default function(vtkImageData, options = {}){
     // the first three elements of the final column of the ResliceAxes matrix).
 
 
-    //static double obliqueElements[16] = {
-    //         1, 0, 0, 0,  // 0
-    //         0, 0.866025, -0.5, 0,    // 1
-    //         0, 0.5, 0.866025, 0, // 2
-    //         0, 0, 0, 1 };
-
-
     console.log(axes)
     imageReslice.setResliceAxes(axes);
 
@@ -92,5 +103,11 @@ const _planeAxes = [
         0, 1, 0, 0, 
         0, 0, -1, 0,
         -1, 0, 0, 0,
-        0, 0, 0, 1)  // slice, 1, 2 
+        0, 0, 0, 1), // slice, 1, 2 
+    // Oblique
+    mat4.fromValues(
+        1, 0, 0, 0,
+        0, 0.866025, 0.5, 0,
+        0, -0.5, 0.866025, 0,
+        0, 0, 0, 1) // 0, 1, 2
 ]
