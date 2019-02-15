@@ -130,7 +130,7 @@ function _calculateDimensions(metaDataMap){
     // TODO: these values may need to be in proportion to each other
     // and the distance between slices on the z-index
     // const xSpacing = imagePlaneModule.columnPixelSpacing
-    //const ySpacing = imagePlaneModule.rowPixelSpacing
+    // const ySpacing = imagePlaneModule.rowPixelSpacing
     const xSpacing = 9;
     const ySpacing = 9;
     console.log(imagePlaneModule)
