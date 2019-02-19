@@ -1,4 +1,5 @@
 import createMprSlice from './lib/vtk/createMprSlice.js';
+import mprMetaDataStore from './lib/mprMetadata/mprMetaDataStore.js';
 import tryGetVtkVolumeForSeriesNumber from './lib/vtk/tryGetVtkVolumeForSeriesNumber.js';
 import mapVtkSliceToCornerstoneImage from './lib/vtk/mapVtkSliceToCornerstoneImage.js';
 
@@ -18,8 +19,9 @@ async function createImage(imageId){
     const [scheme, seriesNumber, plane, rotation, sliceDelta] = imageId.split(':');
     const vtkVolume = await tryGetVtkVolumeForSeriesNumber(seriesNumber);
 
-    const vtkSlice = createMprSlice(vtkVolume.vtkImageData, { plane, rotation, sliceDelta });
-    const mappedSlice = mapVtkSliceToCornerstoneImage(vtkSlice);
+    const createSliceResult = createMprSlice(vtkVolume.vtkImageData, { plane, rotation, sliceDelta });
+    const mappedSlice = mapVtkSliceToCornerstoneImage(createSliceResult.slice);
+    _createMprMetaData(imageId, createSliceResult.metaData);
 
     const image = {
         imageId,
@@ -85,3 +87,8 @@ function getMinMax (storedPixelData) {
     };
   }
   
+
+  function _createMprMetaData(imageId, metaData){
+    console.log(metaData);
+    mprMetaDataStore.set(imageId, metaData);
+  }

@@ -87,17 +87,58 @@ export default function(vtkImageData, options = {}){
     // the first three elements of the final column of the ResliceAxes matrix).
 
 
-    console.log(axes)
+    console.log('AXES: ', axes)
     imageReslice.setResliceAxes(axes);
 
-    const obliqueSlice = imageReslice.getOutputData();
+    const outputSlice = imageReslice.getOutputData();
+    const spacing = outputSlice.getSpacing();
 
-    return obliqueSlice;
+    console.log('OUTPUT SLICE: ', outputSlice)
+
+    const result = {
+        slice: outputSlice,
+        metaData: {
+            imagePlaneModule: {
+                imagePositionPatient: [axes[12], axes[13], axes[14]],
+                rowCosines: [axes[0], axes[1], axes[2]],
+                columnCosines: [axes[4], axes[5], axes[6]],
+                rowPixelSpacing: spacing[1],
+                columnPixelSpacing: spacing[0],
+                frameOfReferenceUID: "THIS-CAN-BE-ALMOST-ANYTHING"
+            }
+        }
+    }
+
+    console.log("~~~~~~ RESULT:", result)
+
+    return result;
 }
 
+// What values correspond to:
+// https://public.kitware.com/pipermail/vtkusers/2012-November/077297.html
+// http://nipy.org/nibabel/dicom/dicom_orientation.html
+// ux, uy, uz, 0
+// vx, vy, vz, 0
+// wx, wy, wz, 0
+// px, py, pz, 1
+//
+// ux, uy, uz, vx, vy, vz is from the "ImageOrientationPatient"
+// w = cross_product(u,v)
+// px, py, pz is from "ImagePositionPatient"
+//
+// Example values:
+//
+// ImagePositionPatient: [60.3642578125, 170.3642578125, -32]
+// ImageOrientationPatient: [-1, 0, 0, 0, -1, 0]
+// RowCosines: [-1, 0, 0]
+// ColumnCosines: [0, -1, 0]
 const _planeAxes = [
     // Axial
-    mat4.create(), // 0, 1, slice
+    // 1, 0, 0, 0,
+    // 0, 1, 0, 0,
+    // 0, 0, 1, 0,
+    // 0, 0, 0, 1   // 0, 1, slice
+    mat4.create(),
     // Coronal
     mat4.fromValues(
         1, 0, 0, 0,
