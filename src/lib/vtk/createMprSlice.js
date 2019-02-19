@@ -69,12 +69,6 @@ export default function(vtkImageData, options = {}){
     // console.log('multiplied', multiplied)
 
 
-    console.log('options: ', options)
-    console.log('origin: ', x0, y0, z0)
-    console.log('spacing: ', xSpacing, ySpacing, zSpacing)
-    console.log('extent: ', xMin, xMax, yMin, yMax, zMin, zMax)
-    console.log('center: ' ,centerOfVolume)
-
     const imageReslice = vtkImageReslice.newInstance();
     imageReslice.setInputData(vtkImageData);    // Our volume
     imageReslice.setOutputDimensionality(2);    // We want a "slice", not a volume

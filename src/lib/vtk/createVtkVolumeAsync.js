@@ -38,8 +38,6 @@ export default async function(seriesImageIds){
     const imageData = await _createVtkVolume(seriesImageIds, dimensions, spacing, zAxis);
     const imageDataObject = {
         imageIds: seriesImageIds,
-        // dimensions,
-        // spacing,
         orientation,
         vtkImageData: imageData,
         zAxis
@@ -73,6 +71,7 @@ async function _createVtkVolume(seriesImageIds, dimensions, spacing, zAxis){
         insertSlice(vtkVolume, image.getPixelData(), sliceIndex);
     }
 
+    console.log('~~~~~~~~~~ VTK VOLUME:', vtkVolume);
     return vtkVolume;
 }
 
@@ -127,14 +126,8 @@ function _calculateDimensions(metaDataMap){
     const orientation = determineOrientation(crossProduct)
     const zAxis = computeZAxis(orientation, metaDataMap)
 
-    // TODO: these values may need to be in proportion to each other
-    // and the distance between slices on the z-index
-    // const xSpacing = imagePlaneModule.columnPixelSpacing
-    // const ySpacing = imagePlaneModule.rowPixelSpacing
-    const xSpacing = 9;
-    const ySpacing = 9;
-    console.log(imagePlaneModule)
-    console.warn('Using default x,y pixelSpacing of 1; anything else creates smooshed images')
+    const xSpacing = imagePlaneModule.columnPixelSpacing
+    const ySpacing = imagePlaneModule.rowPixelSpacing
     const zSpacing = zAxis.spacing
     const xVoxels = imagePlaneModule.columns
     const yVoxels = imagePlaneModule.rows

@@ -30,12 +30,12 @@ export default function(vtkSlice){
       pixelData,
 
       //
-      columnPixelSpacing: spacing[1],
+      columnPixelSpacing: spacing[0],
       rows: dimensions[1],
       height: dimensions[1],
 
       //
-      rowPixelSpacing: spacing[0],
+      rowPixelSpacing: spacing[1],
       columns: dimensions[0],
       width: dimensions[0],
 
