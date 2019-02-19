@@ -4,14 +4,10 @@ import vtkImageReslice from 'vtk.js/Sources/Imaging/Core/ImageReslice';
 // Could be our PixelSpacing Issue:
 // https://cmake.org/pipermail/igstk-developers/2005-November/000507.html
 export default function(vtkImageData, options = {}){
-    const iop = options.imageOrientationPatient || "1,0,0,0,1,0";
-    const ipp = options.imagePositionPatient || "0,0,0";
+    let iop = options.imageOrientationPatient || "1,0,0,0,1,0";
+    let ipp = options.imagePositionPatient || "0,0,0";
 
     vtkImageData.setOrigin(0, 0, 0);
-
-    const [x0, y0, z0] = vtkImageData.getOrigin();
-    const [xSpacing, ySpacing, zSpacing] = vtkImageData.getSpacing();
-    const [xMin, xMax, yMin, yMax, zMin, zMax] = vtkImageData.getExtent();
 
     // http://vtk.1045678.n5.nabble.com/vtkImageReslice-and-appending-slices-td5728537.html
     // https://public.kitware.com/pipermail/vtkusers/2012-January/071996.html
@@ -23,15 +19,19 @@ export default function(vtkImageData, options = {}){
     // values is really only useful for orthogonal reslicing. 
     // https://vtkusers.public.kitware.narkive.com/HgihE8by/adjusting-vtkimagereslice-extent-when-slicing-a-volume
 
+    const [x0, y0, z0] = vtkImageData.getOrigin();
+    const [xSpacing, ySpacing, zSpacing] = vtkImageData.getSpacing();
+    const [xMin, xMax, yMin, yMax, zMin, zMax] = vtkImageData.getExtent();
 
-    // SLICE SPACING/POSITIONe
+    // SLICE SPACING/POSITION
     // Per volume; can probably add this to vtkImageData or meta for series/volume?
-    const centerOfVolume = []
-    centerOfVolume[0] = x0 + xSpacing * 0.5 * (xMin + xMax); 
-    centerOfVolume[1] = y0 + ySpacing * 0.5 * (yMin + yMax); 
-    centerOfVolume[2] = z0 + zSpacing * 0.5 * (zMin + zMax);
+    if(ipp === "center"){
+        
+        const centerOfVolume = []
+        centerOfVolume[0] = x0 + xSpacing * 0.5 * (xMin + xMax); 
+        centerOfVolume[1] = y0 + ySpacing * 0.5 * (yMin + yMax); 
+        centerOfVolume[2] = z0 + zSpacing * 0.5 * (zMin + zMax);
 
-    if(ipp === ""){
         ipp = centerOfVolume.join();
     }
 
@@ -40,7 +40,7 @@ export default function(vtkImageData, options = {}){
     // centerOfVolume[1] += options.sliceDelta * ySpacing;
     // centerOfVolume[2] += options.sliceDelta * zSpacing; // axial
 
-    const axes = _calculateRotationAxes(iop, ipp);
+    const axes = _calculateRotationAxes(iop, ipp); //cov); // ipp);
 
     const imageReslice = vtkImageReslice.newInstance();
     imageReslice.setInputData(vtkImageData);    // Our volume
