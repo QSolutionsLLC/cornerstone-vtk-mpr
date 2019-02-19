@@ -10,7 +10,6 @@ import cornerstone, {
     displayImage,
     updateImage,
   } from 'cornerstone-core'
-  import { Vector3 } from 'cornerstone-math'
   import {
     addToolState,
     clearToolState,
@@ -25,6 +24,8 @@ import cornerstone, {
     waitForElementToBeEnabled,
     waitForEnabledElementImageToLoad,
   } from './lib/wait.js'
+
+  import getMprUrl from './lib/getMprUrl.js'
   
   const BaseAnnotationTool = csTools('base/BaseAnnotationTool')
   
@@ -37,6 +38,7 @@ import cornerstone, {
   const projectPatientPointToImagePlane = csTools(
     'util/projectPatientPointToImagePlane'
   )
+  
   
   /**
    * @export @public @class
@@ -230,78 +232,101 @@ import cornerstone, {
 
     const sourceImagePoint = eventData.currentPoints.image
     // Uses rowCosines, columnCosines, imagePositionPatient, and row/columnPixelSpacing
-    const sourcePatientPoint = imagePointToPatientPoint(
+    const sourceIpp = imagePointToPatientPoint(
       sourceImagePoint,
       sourceImagePlane
     )
+
+    const vectorIpp = vec3.fromValues(sourceIpp.x, sourceIpp.y, sourceIpp.z)
+    console.log('~~ VECTOR IPP: ', vectorIpp)
+    //const sourcePointPlanePosition = vec3.dot(vec3.clone(normal), localSourcePatientPoint)
   
     store.state.enabledElements.forEach(async targetElement => {
-      const targetElementCurrentImage = cornerstone.getImage(targetElement)
+      const targetImage = cornerstone.getImage(targetElement)
+
+      if(!targetImage.imageId.includes('mpr')){
+        console.warn('skipping; wrong image scheme');
+        return;
+      }
+
+      const targetImagePlaneMeta = metaData.get('imagePlaneModule', targetImage.imageId);
+      const iopString = targetImagePlaneMeta.rowCosines.concat(targetImagePlaneMeta.columnCosines).join()
+      const ippString = new Float32Array([vectorIpp[0], vectorIpp[1], vectorIpp[2]]).join()
+      console.log('ippstring: ', ippString)
+      const mprImageId = getMprUrl(iopString, ippString);
+
+      console.log('LOADING NEW ID: ', mprImageId)
+      loadAndCacheImage(mprImageId).then(image =>{
+          console.log('displaying....')
+        displayImage(targetElement, image, getViewport(targetElement))
+      });
 
       // Clear
-      clearToolState(targetElement, this.name)
+      // clearToolState(targetElement, this.name)
   
       // Update
       // rowCosines and columnCosines should be the same
       // We need _ideal_ imagePositionPatient values (x, y, z)
       // Assuming those values are within our bounds 
-      const bestImageIdIndex = _findBestImageIdIndex(
-        targetElementCurrentImage,
-        sourcePatientPoint,
-        sourceImagePlane.frameOfReferenceUID
-      )
 
-      if (bestImageIdIndex !== null) {
+    //   const bestImageIdIndex = _findBestImageIdIndex(
+    //     targetElementCurrentImage,
+    //     sourcePatientPoint,
+    //     sourceImagePlane.frameOfReferenceUID
+    //   )
+
+      // if (bestImageIdIndex !== null) {
         try {
-          const imageId = seriesStack.imageIds[bestImageIdIndex]
-          const targetTool = store.state.tools.find(
-            tool => tool.element === targetElement && tool.name === this.name
-          )
+          // const imageId = seriesStack.imageIds[bestImageIdIndex]
+        //   const targetTool = store.state.tools.find(
+        //     tool => tool.element === targetElement && tool.name === this.name
+        //   )
   
-          if (targetTool) {
-            targetTool.syncedId = imageId
-          }
+        //   if (targetTool) {
+        //     targetTool.syncedId = imageId
+        //   }
 
           // TODO: LOAD IMAGE
 
-          seriesStack.currentImageIdIndex = bestImageIdIndex
-          displayImage(targetElement, image, getViewport(targetElement))
+        //   seriesStack.currentImageIdIndex = bestImageIdIndex
+        //   displayImage(targetElement, image, getViewport(targetElement))
   
-          const endLoadingHandler = loadHandlerManager.getEndLoadHandler()
-          if (endLoadingHandler) endLoadingHandler(targetElement, image)
+        //   const endLoadingHandler = loadHandlerManager.getEndLoadHandler()
+        //   if (endLoadingHandler) endLoadingHandler(targetElement, image)
   
-          // New ToolState w/ bestImageId
-          const targetMeta = metaData.get('imagePlaneModule', imageId)
-          if (
-            !targetMeta ||
-            !targetMeta.rowCosines ||
-            !targetMeta.columnCosines ||
-            !targetMeta.imagePositionPatient
-          )
-            return
+        //   // New ToolState w/ bestImageId
+        //   const targetMeta = metaData.get('imagePlaneModule', imageId)
+        //   if (
+        //     !targetMeta ||
+        //     !targetMeta.rowCosines ||
+        //     !targetMeta.columnCosines ||
+        //     !targetMeta.imagePositionPatient
+        //   )
+        //     return
   
-          const crossPoint = projectPatientPointToImagePlane(
-            sourcePatientPoint,
-            targetMeta
-          )
-          const toolData = getToolState(targetElement, this.name)
-          if (!toolData || !toolData.data || !toolData.data.length) {
-            addToolState(targetElement, this.name, {
-              point: crossPoint,
-            })
-          } else {
-            toolData.data[0].point = crossPoint
-          }
+        //   const crossPoint = projectPatientPointToImagePlane(
+        //     sourcePatientPoint,
+        //     targetMeta
+        //   )
+        //   const toolData = getToolState(targetElement, this.name)
+        //   if (!toolData || !toolData.data || !toolData.data.length) {
+        //     addToolState(targetElement, this.name, {
+        //       point: crossPoint,
+        //     })
+        //   } else {
+        //     toolData.data[0].point = crossPoint
+        //   }
         } catch (err) {
-          const errorLoadingHandler = loadHandlerManager.getErrorLoadingHandler()
-          const imageId = seriesStack.imageIds[bestImageIdIndex]
-          if (errorLoadingHandler)
-            errorLoadingHandler(targetElement, imageId, err)
+            console.warn(err);
+        //   const errorLoadingHandler = loadHandlerManager.getErrorLoadingHandler()
+        //   const imageId = seriesStack.imageIds[bestImageIdIndex]
+        //   if (errorLoadingHandler)
+        //     errorLoadingHandler(targetElement, imageId, err)
         }
-      }
+      // }
   
       // Force redraw
-      updateImage(targetElement)
+      // updateImage(targetElement)
     })
   }
   
@@ -365,8 +390,7 @@ import cornerstone, {
       
       // Distance from image's plane to normal's origin
       const targetPlanePosition = vec3.dot(vec3.clone(normal), imagePosition)
-
-      
+   
       // Distance from a same-oriented plane containing the source point to normal's origin
       const localSourcePatientPoint = vec3.fromValues(sourcePatientPoint.x, sourcePatientPoint.y, sourcePatientPoint.z)
       const sourcePointPlanePosition = vec3.dot(vec3.clone(normal), localSourcePatientPoint)
@@ -374,6 +398,17 @@ import cornerstone, {
       // Distance between derived target and source planes
       const distance = Math.abs(targetPlanePosition - sourcePointPlanePosition)
       console.log(`${targetPlanePosition} - ${sourcePointPlanePosition} = ${distance}`)
+
+
+      // 10, 10, 10
+      // px, py, pz
+      // Voxel: 2, 2, 4
+      // Oblique Step: Normal & PixelSpacing (range doesn't super matter)
+
+
+      // 0 - Axial - degRotationX 45 - sliceIndex
+      // 1 - Coronal - degRotation - 
+      // 2 - Sagittal - degRotation - 
 
   
     return distance
