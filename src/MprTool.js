@@ -244,6 +244,9 @@ import cornerstone, {
     store.state.enabledElements.forEach(async targetElement => {
       const targetImage = cornerstone.getImage(targetElement)
 
+      if (targetElement === sourceElement) {
+        return;
+      }
       if(!targetImage.imageId.includes('mpr')){
         console.warn('skipping; wrong image scheme');
         return;
