@@ -9,6 +9,7 @@ import * as cornerstoneTools from "cornerstone-tools";
 //
 import appState from './appState.js';
 import getUrlForImageId from './lib/getUrlForImageId.js';
+import mprMetaDataProvider from './lib/mprMetadata/mprMetaDataProvider.js';
 import mprImageLoader from './mprImageLoader.js'
 import MprMouseWheelTool from './MprMouseWheelTool.js';
 
@@ -18,6 +19,7 @@ export default function(seriesNumber) {
     _initWadoImageLoader();
     _initCornerstoneTools();
     cornerstone.registerImageLoader('mpr', mprImageLoader)
+    cornerstone.metaData.addProvider(mprMetaDataProvider);
 
     // Enable Elements
     const originalSeriesElement = document.getElementById("cornerstone-target");
