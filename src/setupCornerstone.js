@@ -11,6 +11,7 @@ import appState from './appState.js';
 import getUrlForImageId from './lib/getUrlForImageId.js';
 import mprMetaDataProvider from './lib/mprMetadata/mprMetaDataProvider.js';
 import mprImageLoader from './mprImageLoader.js'
+import MprTool from './MprTool.js';
 import MprMouseWheelTool from './MprMouseWheelTool.js';
 
 export default function(seriesNumber) {
@@ -18,7 +19,7 @@ export default function(seriesNumber) {
     _setPeerDependencies();
     _initWadoImageLoader();
     _initCornerstoneTools();
-    cornerstone.registerImageLoader('mpr', mprImageLoader)
+    cornerstone.registerImageLoader('mpr', mprImageLoader);
     cornerstone.metaData.addProvider(mprMetaDataProvider);
 
     // Enable Elements
@@ -91,6 +92,7 @@ function _initCornerstoneTools(){
     cornerstoneTools.addTool(PanTool);
     cornerstoneTools.addTool(ZoomTool);
     cornerstoneTools.addTool(WwwcTool);
+    cornerstoneTools.addTool(MprTool);
     cornerstoneTools.addTool(PanMultiTouchTool);
     cornerstoneTools.addTool(StackScrollMouseWheelTool);
     cornerstoneTools.addTool(ZoomTouchPinchTool);
@@ -100,7 +102,8 @@ function _initCornerstoneTools(){
     // Set tool modes
     cornerstoneTools.setToolActive("Pan", { mouseButtonMask: 4 }); // Middle
     cornerstoneTools.setToolActive("Zoom", { mouseButtonMask: 2 }); // Right
-    cornerstoneTools.setToolActive("Wwwc", { mouseButtonMask: 1 }); // Left & Touch
+    // cornerstoneTools.setToolActive("Wwwc", { mouseButtonMask: 1 }); // Left & Touch
+    cornerstoneTools.setToolActive("Mpr", { mouseButtonMask: 1 });
     cornerstoneTools.setToolActive("PanMultiTouch", {});
     cornerstoneTools.setToolActive("ZoomTouchPinch", {});
 }
