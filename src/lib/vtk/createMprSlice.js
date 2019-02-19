@@ -1,12 +1,11 @@
-import { mat4, vec4 } from 'gl-matrix';
+import { mat4, vec3 } from 'gl-matrix';
 import vtkImageReslice from 'vtk.js/Sources/Imaging/Core/ImageReslice';
 
-// Python Example: https://gitlab.kitware.com/vtk/vtk/blob/c13eb8658928b10db8c073b53081183b8ce60fd2/Examples/ImageProcessing/Cxx/ImageSlicing.cxx
-// https://public.kitware.com/pipermail/vtkusers/2010-April/059673.html
+// Could be our PixelSpacing Issue:
+// https://cmake.org/pipermail/igstk-developers/2005-November/000507.html
 export default function(vtkImageData, options = {}){
-    options.plane = options.plane || 0;
-    options.rotation = options.rotation || 0;
-    options.sliceDelta = options.sliceDelta || 0;
+    const iop = options.imageOrientationPatient || "1,0,0,0,1,0";
+    const ipp = options.imagePositionPatient || "0,0,0";
 
     vtkImageData.setOrigin(0, 0, 0);
 
@@ -25,56 +24,30 @@ export default function(vtkImageData, options = {}){
     // https://vtkusers.public.kitware.narkive.com/HgihE8by/adjusting-vtkimagereslice-extent-when-slicing-a-volume
 
 
-    // SLICE SPACING/POSITION
+    // SLICE SPACING/POSITIONe
+    // Per volume; can probably add this to vtkImageData or meta for series/volume?
     const centerOfVolume = []
     centerOfVolume[0] = x0 + xSpacing * 0.5 * (xMin + xMax); 
     centerOfVolume[1] = y0 + ySpacing * 0.5 * (yMin + yMax); 
     centerOfVolume[2] = z0 + zSpacing * 0.5 * (zMin + zMax);
 
-    const sliceDelta = zSpacing * options.sliceDelta
-    console.log('sliceDelta: ', sliceDelta)
-
-    // Update "sliceIndex"
-    // We'll need a more dynamic way to apply this for obliques/arbitrary rotation?
-    // if(options.plane === 0){
-    //     // Axial
-    //     centerOfVolume[2] += sliceDelta;
-    // }else if(options.plane === 1){
-    //     // Coronal
-    //     centerOfVolume[1] += sliceDelta;
-    // }else{
-    //     // Sagittal
-    //     centerOfVolume[0] += sliceDelta;
-    // }
+    if(ipp === ""){
+        ipp = centerOfVolume.join();
+    }
 
     // These may all need to be changed if our axes change?
-    centerOfVolume[0] += options.sliceDelta * xSpacing;
-    centerOfVolume[1] += options.sliceDelta * ySpacing;
-    centerOfVolume[2] += options.sliceDelta * zSpacing; // axial
+    // centerOfVolume[0] += options.sliceDelta * xSpacing;
+    // centerOfVolume[1] += options.sliceDelta * ySpacing;
+    // centerOfVolume[2] += options.sliceDelta * zSpacing; // axial
 
-
-    let axes = mat4.clone(_planeAxes[options.plane]);
-    axes[12] = centerOfVolume[0]
-    axes[13] = centerOfVolume[1]
-    axes[14] = centerOfVolume[2]
-
-    // const sliceCenterPoint = [
-    //     0.0,
-    //     0.0,
-    //     zSpacing * options.sliceDelta,
-    //     1.0
-    // ]
-    // let multiplied = [];
-    // vec4.mul(multiplied, sliceCenterPoint, centerOfVolume);
-    // console.log('multiplied', multiplied)
-
+    const axes = _calculateRotationAxes(iop, ipp);
 
     const imageReslice = vtkImageReslice.newInstance();
     imageReslice.setInputData(vtkImageData);    // Our volume
     imageReslice.setOutputDimensionality(2);    // We want a "slice", not a volume
     imageReslice.setBackgroundColor(255, 255, 255, 255)
 
-    //mat4.rotateX(axes, axes, options.rotation * Math.PI / 180);
+    // mat4.rotateX(axes, axes, options.rotation * Math.PI / 180);
 
     // https://public.kitware.com/pipermail/vtkusers/2008-September/048181.html
     // https://kitware.github.io/vtk-js/api/Common_Core_MatrixBuilder.html
@@ -114,6 +87,28 @@ export default function(vtkImageData, options = {}){
     return result;
 }
 
+function _calculateRotationAxes(iop, ipp){
+    const iopArray = iop.split(',').map(parseFloat);
+    const ippArray = ipp.split(',').map(parseFloat);
+    const rowCosines = vec3.fromValues(
+        iopArray[0], iopArray[1], iopArray[2]
+    );
+    const colCosines = vec3.fromValues(
+        iopArray[3], iopArray[4], iopArray[5]
+    );
+    let wCrossProd = vec3.create()
+    vec3.cross(wCrossProd, rowCosines, colCosines);
+
+    const axes = mat4.fromValues(
+        rowCosines[0], rowCosines[1], rowCosines[2], 0,
+        colCosines[0], colCosines[1], colCosines[2], 0,
+        wCrossProd[0], wCrossProd[1], wCrossProd[2], 0,
+        ippArray[0], ippArray[1], ippArray[2], 1
+    )
+
+    return axes;
+}
+
 // What values correspond to:
 // https://public.kitware.com/pipermail/vtkusers/2012-November/077297.html
 // http://nipy.org/nibabel/dicom/dicom_orientation.html
@@ -132,32 +127,6 @@ export default function(vtkImageData, options = {}){
 // ImageOrientationPatient: [-1, 0, 0, 0, -1, 0]
 // RowCosines: [-1, 0, 0]
 // ColumnCosines: [0, -1, 0]
-const _planeAxes = [
-    // Axial
-    // 1, 0, 0, 0,
-    // 0, 1, 0, 0,
-    // 0, 0, 1, 0,
-    // 0, 0, 0, 1   // 0, 1, slice
-    mat4.create(),
-    // Coronal
-    mat4.fromValues(
-        1, 0, 0, 0,
-        0, 0, -1, 0,
-        0, 1, 0, 0,
-        0, 0, 0, 1), // 0, slice, 2
-    // Sagittal
-    mat4.fromValues(
-        0, 1, 0, 0, 
-        0, 0, -1, 0,
-        -1, 0, 0, 0,
-        0, 0, 0, 1), // slice, 1, 2 
-    // Oblique
-    mat4.fromValues(
-        1, 0, 0, 0,
-        0, 0.866025, 0.5, 0,
-        0, -0.5, 0.866025, 0,
-        0, 0, 0, 1) // 0, 1, 2
-]
 
 // https://public.kitware.com/pipermail/vtkusers/2013-January/078280.html
 // the ResliceAxes matrix

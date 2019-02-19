@@ -16,10 +16,11 @@ export default function(imageId){
 }
 
 async function createImage(imageId){
-    const [scheme, seriesNumber, plane, rotation, sliceDelta] = imageId.split(':');
+    console.log('MPR IMAGE ID: ', imageId);
+    const [scheme, seriesNumber, imageOrientationPatient, imagePositionPatient] = imageId.split(':');
     const vtkVolume = await tryGetVtkVolumeForSeriesNumber(seriesNumber);
 
-    const createSliceResult = createMprSlice(vtkVolume.vtkImageData, { plane, rotation, sliceDelta });
+    const createSliceResult = createMprSlice(vtkVolume.vtkImageData, { imageOrientationPatient, imagePositionPatient });
     const mappedSlice = mapVtkSliceToCornerstoneImage(createSliceResult.slice);
     _createMprMetaData(imageId, createSliceResult.metaData);
 
@@ -59,34 +60,6 @@ async function createImage(imageId){
 
     return image;
 }
-
-/**
- * Calculate the minimum and maximum values in an Array
- *
- * @param {Number[]} storedPixelData
- * @return {{min: Number, max: Number}}
- */
-function getMinMax (storedPixelData) {
-    // we always calculate the min max values since they are not always
-    // present in DICOM and we don't want to trust them anyway as cornerstone
-    // depends on us providing reliable values for these
-    let min = storedPixelData[0];
-    let max = storedPixelData[0];
-    let storedPixel;
-    const numPixels = storedPixelData.length;
-  
-    for (let index = 1; index < numPixels; index++) {
-      storedPixel = storedPixelData[index];
-      min = Math.min(min, storedPixel);
-      max = Math.max(max, storedPixel);
-    }
-  
-    return {
-      min,
-      max
-    };
-  }
-  
 
   function _createMprMetaData(imageId, metaData){
     console.log(metaData);
