@@ -1,30 +1,22 @@
 import { vec3 } from 'gl-matrix';
 import cornerstone, {
-    EVENTS,
     getEnabledElement,
     metaData,
     pixelToCanvas,
-    loadImage,
     loadAndCacheImage,
     getViewport,
     displayImage,
     updateImage,
   } from 'cornerstone-core'
+  import { Vector3 } from 'cornerstone-math';
   import {
     addToolState,
-    clearToolState,
     getToolState,
     import as csTools,
-    loadHandlerManager,
     setToolDisabled,
     store,
     toolColors,
   } from 'cornerstone-tools'
-  import {
-    waitForElementToBeEnabled,
-    waitForEnabledElementImageToLoad,
-  } from './lib/wait.js'
-
   import getMprUrl from './lib/getMprUrl.js'
   import tryGetVtkVolumeForSeriesNumber from './lib/vtk/tryGetVtkVolumeForSeriesNumber.js';
 
@@ -72,16 +64,11 @@ import cornerstone, {
       this.mergeOptions(initialConfiguration.options)
 
       this.updatePoint = _updatePoint.bind(this)
-      this.clearPointsIfNotSynced = _clearPointsIfNotSynced.bind(this)
       this.syncedId = null
     }
 
     activeCallback(element, options) {
-      this.element.removeEventListener(
-        EVENTS.NEW_IMAGE,
-        this.clearPointsIfNotSynced
-      )
-      this.element.addEventListener(EVENTS.NEW_IMAGE, this.clearPointsIfNotSynced)
+
     }
 
     passiveCallback(element, options) {
@@ -93,20 +80,16 @@ import cornerstone, {
     }
 
     disabledCallback(element, options) {
-      this.element.removeEventListener(
-        EVENTS.NEW_IMAGE,
-        this.clearPointsIfNotSynced
-      )
-      store.state.enabledElements.forEach(async enabledElement => {
-        clearToolState(enabledElement, this.name)
-        const isEnabled = await waitForElementToBeEnabled(enabledElement)
-        const hasLoadedImage = await waitForEnabledElementImageToLoad(
-          enabledElement
-        )
-        if (isEnabled && hasLoadedImage) {
-          updateImage(enabledElement)
-        }
-      })
+      // store.state.enabledElements.forEach(async enabledElement => {
+      //   clearToolState(enabledElement, this.name)
+      //   const isEnabled = await waitForElementToBeEnabled(enabledElement)
+      //   const hasLoadedImage = await waitForEnabledElementImageToLoad(
+      //     enabledElement
+      //   )
+      //   if (isEnabled && hasLoadedImage) {
+      //     updateImage(enabledElement)
+      //   }
+      // })
     }
 
     // BaseAnnotationTool, despite no persistent
@@ -124,6 +107,7 @@ import cornerstone, {
       const eventData = evt.detail
       const element = eventData.element
       const toolData = getToolState(evt.currentTarget, this.name)
+      console.log(toolData)
       if (!toolData || !toolData.data || !toolData.data.length) return
       const context = getNewContext(eventData.canvasContext.canvas)
       toolData.data.forEach(data => {
@@ -244,6 +228,7 @@ import cornerstone, {
         return;
       }
 
+      // Load image w/ same IOP, but w/ updated IPP
       const targetImagePlane = metaData.get('imagePlaneModule', targetImage.imageId);
       const iopString = targetImagePlane.rowCosines.concat(targetImagePlane.columnCosines).join()
       const ippString = new Float32Array([ippTopLeftVec3[0], ippTopLeftVec3[1], ippTopLeftVec3[2]]).join()
@@ -253,85 +238,26 @@ import cornerstone, {
         displayImage(targetElement, image, getViewport(targetElement))
       });
 
-      // Clear
+      // Clear Toolstate
       // clearToolState(targetElement, this.name)
 
-      // Update
-      // rowCosines and columnCosines should be the same
-      // We need _ideal_ imagePositionPatient values (x, y, z)
-      // Assuming those values are within our bounds
+      // Update Tool State
+      //const helloVector = new Vector3(...ippVec3);
+      //const hello = projectPatientPointToImagePlane(helloVector, targetImagePlane);
+      const crossPoint = _projectPatientPointToImagePlane(ippVec3, targetImagePlane)
 
-    //   const bestImageIdIndex = _findBestImageIdIndex(
-    //     targetElementCurrentImage,
-    //     sourcePatientPoint,
-    //     sourceImagePlane.frameOfReferenceUID
-    //   )
-
-      // if (bestImageIdIndex !== null) {
-        try {
-          // const imageId = seriesStack.imageIds[bestImageIdIndex]
-        //   const targetTool = store.state.tools.find(
-        //     tool => tool.element === targetElement && tool.name === this.name
-        //   )
-
-        //   if (targetTool) {
-        //     targetTool.syncedId = imageId
-        //   }
-
-          // TODO: LOAD IMAGE
-
-        //   seriesStack.currentImageIdIndex = bestImageIdIndex
-        //   displayImage(targetElement, image, getViewport(targetElement))
-
-        //   const endLoadingHandler = loadHandlerManager.getEndLoadHandler()
-        //   if (endLoadingHandler) endLoadingHandler(targetElement, image)
-
-        //   // New ToolState w/ bestImageId
-        //   const targetMeta = metaData.get('imagePlaneModule', imageId)
-        //   if (
-        //     !targetMeta ||
-        //     !targetMeta.rowCosines ||
-        //     !targetMeta.columnCosines ||
-        //     !targetMeta.imagePositionPatient
-        //   )
-        //     return
-
-        //   const crossPoint = projectPatientPointToImagePlane(
-        //     sourcePatientPoint,
-        //     targetMeta
-        //   )
-        //   const toolData = getToolState(targetElement, this.name)
-        //   if (!toolData || !toolData.data || !toolData.data.length) {
-        //     addToolState(targetElement, this.name, {
-        //       point: crossPoint,
-        //     })
-        //   } else {
-        //     toolData.data[0].point = crossPoint
-        //   }
-        } catch (err) {
-            console.warn(err);
-        //   const errorLoadingHandler = loadHandlerManager.getErrorLoadingHandler()
-        //   const imageId = seriesStack.imageIds[bestImageIdIndex]
-        //   if (errorLoadingHandler)
-        //     errorLoadingHandler(targetElement, imageId, err)
-        }
-      // }
+      const toolData = getToolState(targetElement, this.name)
+      if (!toolData || !toolData.data || !toolData.data.length) {
+        addToolState(targetElement, this.name, {
+          point: crossPoint,
+        })
+      } else {
+        toolData.data[0].point = crossPoint
+      }
 
       // Force redraw
-      // updateImage(targetElement)
+      updateImage(targetElement)
   })
-}
-
-const _clearPointsIfNotSynced = function() {
-  const imageId = getEnabledElement(this.element).image.imageId
-
-  if (!imageId) return // No image
-  if (!this.syncedId) return // No syncedId
-  if (imageId === this.syncedId) return // SyncedId matches :+1:
-
-  store.state.enabledElements.forEach(enabledElement =>
-    clearToolState(enabledElement, this.name)
-  )
 }
 
 // TODO: We need something easier for store/retrieve/delete/clear than this
@@ -373,4 +299,22 @@ function _computeIppTopLeftForCenter(rowCosines, colCosines, ippCenter, spacing,
   vec3.add(topLeftIpp, topLeftIpp, rowTranslate);
 
   return topLeftIpp;
+}
+
+function _projectPatientPointToImagePlane(patientPoint, imagePlane) {
+  const rowCosines = imagePlane.rowCosines;
+  const columnCosines = imagePlane.columnCosines;
+  const imagePositionPatient = imagePlane.imagePositionPatient;
+
+  const rowCosinesVec3 = vec3.fromValues(...rowCosines);
+  const colCosinesVec3 = vec3.fromValues(...columnCosines);
+  const ippVec3 = vec3.fromValues(...imagePositionPatient);
+
+  const point = vec3.create();
+  vec3.sub(point, patientPoint, ippVec3);
+
+  const x = vec3.dot(rowCosinesVec3, point) / imagePlane.columnPixelSpacing;
+  const y = vec3.dot(colCosinesVec3, point) / imagePlane.rowPixelSpacing;
+  
+  return { x, y };
 }
