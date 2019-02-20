@@ -12,8 +12,20 @@ import vtkImageReslice from 'vtk.js/Sources/Imaging/Core/ImageReslice';
 // values is really only useful for orthogonal reslicing.
 // https://vtkusers.public.kitware.narkive.com/HgihE8by/adjusting-vtkimagereslice-extent-when-slicing-a-volume
 
-// Could be our PixelSpacing Issue:
-// https://public.kitware.com/pipermail/vtkusers/2008-September/048181.html
+
+/**
+ *
+ * @function createMprSlice
+ *
+ * @param {Object} vtkVolume
+ * @param {vtkImageData} vtkVolume.vtkImageData
+ * @param {Vec3} vtkVolume.centerIpp
+ * @param {Object} [options={}]
+ * @param {String} [options.imageOrientationPatient]
+ * @param {String} [options.imagePositionPatient]
+ * 
+ * @returns {Object} - {slice, metaData}
+ */
 export default function(vtkVolume, options = {}){
     // Input
     const vtkImageData = vtkVolume.vtkImageData;
@@ -33,6 +45,8 @@ export default function(vtkVolume, options = {}){
         : ipp.split(',').map(parseFloat)
 
     // Maths
+    // TODO: Move `computeTopLeftIpp` to tool(s)
+    // TODO: MetaDataProvider to grab `volumeSpacing` and `volumeExtent` for a given volume?
     const topLeftOfImageIPP = computeTopLeftIpp(rowCosinesVec3, colCosinesVec3, ippVec3, volumeSpacing, volumeExtent)
     const axes = _calculateRotationAxes(rowCosinesVec3, colCosinesVec3, topLeftOfImageIPP);
     // mat4.rotateX(axes, axes, options.rotation * Math.PI / 180);
