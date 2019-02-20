@@ -141,8 +141,8 @@ import cornerstone, {
      * @returns {boolean} true - consumes event
      * @memberof AstCrossPoint
      */
-    async postMouseDownCallback(evt) {
-      await this.updatePoint(evt)
+    postMouseDownCallback(evt) {
+      this.updatePoint(evt)
       evt.preventDefault()
       evt.stopPropagation()
 
@@ -150,8 +150,8 @@ import cornerstone, {
       return consumeEvent
     }
 
-    async mouseDragCallback(evt) {
-      await this.updatePoint(evt)
+    mouseDragCallback(evt) {
+      this.updatePoint(evt)
       evt.preventDefault()
       evt.stopPropagation()
     }
@@ -160,8 +160,8 @@ import cornerstone, {
       return false
     }
 
-    async postTouchStartCallback(evt) {
-      await this.updatePoint(evt)
+    postTouchStartCallback(evt) {
+      this.updatePoint(evt)
       evt.preventDefault()
       evt.stopPropagation()
 
@@ -169,8 +169,8 @@ import cornerstone, {
       return consumeEvent
     }
 
-    async touchDragCallback(evt) {
-      await this.updatePoint(evt)
+    touchDragCallback(evt) {
+      this.updatePoint(evt)
       evt.preventDefault()
       evt.stopPropagation()
     }
