@@ -24,38 +24,30 @@ export default class MprMouseWheelTool extends BaseTool {
     super(initialConfiguration);
 
     this.initialConfiguration = initialConfiguration;
-
-    this.rotation = 0;
-    this.sliceDelta = 0;
   }
 
   mouseWheelCallback(evt) {
     const { direction: images, element } = evt.detail;
     const { loop, allowSkipping, invert } = this.configuration;
     const direction = invert ? -images : images;
+    //
 
-    if(direction > 0){
-      this.sliceDelta++;
-      
-        //this.rotation++;
-        //if(this.rotation >= 360) { this.rotation = 0; }
-    }else{
-      this.sliceDelta--;
-        //this.rotation--;
-        //if(this.rotation < 0){ this.rotation = 359; }
-    }
+    const image = cornerstone.getImage(element)
+    const imagePlane = cornerstone.metaData.get('imagePlaneModule', image.imageId)
 
-    const imageUrl = getMprUrl(this.options.plane, this.rotation, this.sliceDelta)
-    cornerstone.loadAndCacheImage(imageUrl).then(image => {
+    // TODO: Best way to determine increment?
+    // TODO: Add key+value to MPR image's `imagePlaneModule` in `createMprSlice`
+    // TODO: Best way to determine IPP bounds?
+    const ipp = direction > 0 
+      ? imagePlane.imagePositionPatient.map(x => x + 1.5)
+      : imagePlane.imagePositionPatient.map(x => x - 1.5)
+    
+    const iopString = imagePlane.rowCosines.concat(imagePlane.columnCosines).join()
+    const ippString = new Float32Array(ipp).join()
+    const mprImageUrl = getMprUrl(iopString, ippString);
+
+    cornerstone.loadAndCacheImage(mprImageUrl).then(image => {
         cornerstone.displayImage(element, image);
-        // Slices are coming out with different heights
-        // This adjust viewport to fit image
-        cornerstone.reset(element); 
     })
-    console.log(`rotationX: ${this.rotation}`)
-    console.log(`sliceDelta: ${this.sliceDelta}`)
-
-    // const viewport = cornerstone.getViewport(element);
-    // console.log(viewport);
   }
 }
