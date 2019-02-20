@@ -10,7 +10,9 @@ export default function(vtkVolume, options = {}){
     const origin = vtkVolume.origin;
     const vtkImageData = vtkVolume.vtkImageData;
 
-    vtkImageData.setOrigin(origin[0], origin[1], origin[2]);
+    //console.log('origin', origin)
+    //vtkImageData.setOrigin(100, 100, 0);
+    /// vtkImageData.setOrigin(origin[0], origin[1], origin[2]);
 
     // http://vtk.1045678.n5.nabble.com/vtkImageReslice-and-appending-slices-td5728537.html
     // https://public.kitware.com/pipermail/vtkusers/2012-January/071996.html
@@ -82,7 +84,7 @@ export default function(vtkVolume, options = {}){
         }
     }
 
-    console.log("~~~~~~ RESULT:", result)
+    // console.log("~~~~~~ RESULT:", result)
 
     return result;
 }

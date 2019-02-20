@@ -215,11 +215,11 @@ import cornerstone, {
   const _updatePoint = function(evt) {
     const eventData = evt.detail
     evt.stopImmediatePropagation()
+    
     const sourceElement = evt.currentTarget
     const sourceEnabledElement = getEnabledElement(sourceElement)
     const sourceImageId = sourceEnabledElement.image.imageId
     const sourceImagePlane = metaData.get('imagePlaneModule', sourceImageId)
-    console.log(`UPDATE: ${sourceImageId}`, sourceImagePlane)
     if (
       !sourceImagePlane ||
       !sourceImagePlane.rowCosines ||
@@ -248,19 +248,16 @@ import cornerstone, {
         return;
       }
       if(!targetImage.imageId.includes('mpr')){
-        console.warn('skipping; wrong image scheme');
+        // console.warn('skipping; wrong image scheme');
         return;
       }
 
       const targetImagePlaneMeta = metaData.get('imagePlaneModule', targetImage.imageId);
       const iopString = targetImagePlaneMeta.rowCosines.concat(targetImagePlaneMeta.columnCosines).join()
       const ippString = new Float32Array([vectorIpp[0], vectorIpp[1], vectorIpp[2]]).join()
-      console.log('ippstring: ', ippString)
       const mprImageId = getMprUrl(iopString, ippString);
 
-      console.log('LOADING NEW ID: ', mprImageId)
       loadAndCacheImage(mprImageId).then(image =>{
-          console.log('displaying....')
         displayImage(targetElement, image, getViewport(targetElement))
       });
 

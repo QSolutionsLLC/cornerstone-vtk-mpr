@@ -16,7 +16,7 @@ export default function(imageId){
 }
 
 async function createImage(imageId){
-    console.log('MPR IMAGE ID: ', imageId);
+    // console.log('MPR IMAGE ID: ', imageId);
     const [scheme, seriesNumber, imageOrientationPatient, imagePositionPatient] = imageId.split(':');
     const vtkVolume = await tryGetVtkVolumeForSeriesNumber(seriesNumber);
 
@@ -27,21 +27,21 @@ async function createImage(imageId){
     const image = {
         imageId,
         color: false,
-        columnPixelSpacing: mappedSlice.columnPixelSpacing, // 0.271484375,
-        rowPixelSpacing: mappedSlice.rowPixelSpacing, // 0.271484375,
+        columnPixelSpacing: mappedSlice.columnPixelSpacing,
+        rowPixelSpacing: mappedSlice.rowPixelSpacing,
         columns: mappedSlice.columns,
         width: mappedSlice.width,
         height: mappedSlice.height,
         rows: mappedSlice.rows,
-        intercept: 0, // -1024,
+        intercept: 0,
         invert: false,
         getPixelData: () => mappedSlice.pixelData,
-        minPixelValue: mappedSlice.minPixelValue, // min,
-        maxPixelValue: mappedSlice.maxPixelValue, // max,
-        sizeInBytes: mappedSlice.sizeInBytes, // generatedImage.pixelData.length,
+        minPixelValue: mappedSlice.minPixelValue,
+        maxPixelValue: mappedSlice.maxPixelValue,
+        sizeInBytes: mappedSlice.sizeInBytes,
         slope: 1,
-        windowCenter:  mappedSlice.windowCenter, // undefined,
-        windowWidth: mappedSlice.windowWidth, // undefined,
+        windowCenter:  mappedSlice.windowCenter, 
+        windowWidth: mappedSlice.windowWidth,
         decodeTimeInMS: 0,
         floatPixelData: undefined,
         isMpr: true,
@@ -56,12 +56,12 @@ async function createImage(imageId){
         image.windowCenter = (maxVoi + minVoi) / 2
     }
 
-    console.log('~~ CREATE IMAGE: ', image)
+    // console.log('~~ CREATE IMAGE: ', image)
 
     return image;
 }
 
   function _createMprMetaData(imageId, metaData){
-    console.log(metaData);
+    // console.log(metaData);
     mprMetaDataStore.set(imageId, metaData);
   }
