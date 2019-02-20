@@ -58,6 +58,8 @@ async function _createVtkVolume(seriesImageIds, dimensions, spacing, zAxis){
         values: typedPixelArray
     })
 
+    // TODO: Is this a better place to set this?
+    // vtkVolume.setOrigin(zAxis.origin)
     vtkVolume.setDimensions(dimensions)
     vtkVolume.setSpacing(spacing)
     vtkVolume.getPointData().setScalars(scalarArray)
@@ -73,7 +75,10 @@ async function _createVtkVolume(seriesImageIds, dimensions, spacing, zAxis){
         insertSlice(vtkVolume, image.getPixelData(), sliceIndex);
     }
 
-    console.log('~~~~~~~~~~ VTK VOLUME:', vtkVolume);
+    // TODO: We can accidentally create multiple volumes if we try to create one
+    // Before a request for the same series has completed.
+    // (You'll notice this logs 3x -- one for each initial MPR canvas, but 0x after any load has finished)
+    // console.log('~~~~~~~~~~ VTK VOLUME:', vtkVolume);
     return vtkVolume;
 }
 
