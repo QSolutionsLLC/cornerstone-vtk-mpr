@@ -57,6 +57,7 @@ export default function(vtkVolume, options = {}){
     // Pull the lever!
     const outputSlice = imageReslice.getOutputData();
     const spacing = outputSlice.getSpacing();
+    const dimensions = outputSlice.getDimensions();
 
     const result = {
         slice: outputSlice,
@@ -67,7 +68,9 @@ export default function(vtkVolume, options = {}){
                 columnCosines: [axes[4], axes[5], axes[6]],
                 rowPixelSpacing: spacing[1],
                 columnPixelSpacing: spacing[0],
-                frameOfReferenceUID: "THIS-CAN-BE-ALMOST-ANYTHING"
+                frameOfReferenceUID: "THIS-CAN-BE-ALMOST-ANYTHING",
+                columns: dimensions[0],
+                rows: dimensions[1]
             }
         }
     }
