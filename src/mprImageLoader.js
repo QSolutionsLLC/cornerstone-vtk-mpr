@@ -20,7 +20,7 @@ async function createImage(imageId){
     const [scheme, seriesNumber, imageOrientationPatient, imagePositionPatient] = imageId.split(':');
     const vtkVolume = await tryGetVtkVolumeForSeriesNumber(seriesNumber);
 
-    const createSliceResult = createMprSlice(vtkVolume.vtkImageData, { imageOrientationPatient, imagePositionPatient });
+    const createSliceResult = createMprSlice(vtkVolume, { imageOrientationPatient, imagePositionPatient });
     const mappedSlice = mapVtkSliceToCornerstoneImage(createSliceResult.slice);
     _createMprMetaData(imageId, createSliceResult.metaData);
 

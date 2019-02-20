@@ -28,7 +28,8 @@ export default async function(seriesImageIds){
         orientation,
         multiComponent,
         spacing,
-        zAxis
+        zAxis,
+        origin
     } = _calculateDimensions(metaDataMap)
 
     if (multiComponent) {
@@ -40,6 +41,7 @@ export default async function(seriesImageIds){
         imageIds: seriesImageIds,
         orientation,
         vtkImageData: imageData,
+        origin,
         zAxis
     }
 
@@ -141,6 +143,7 @@ function _calculateDimensions(metaDataMap){
         orientation,
         multiComponent,
         spacing: [xSpacing, ySpacing, zSpacing],
+        origin: zAxis.origin,
         zAxis
     }
 }

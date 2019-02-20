@@ -3,11 +3,14 @@ import vtkImageReslice from 'vtk.js/Sources/Imaging/Core/ImageReslice';
 
 // Could be our PixelSpacing Issue:
 // https://cmake.org/pipermail/igstk-developers/2005-November/000507.html
-export default function(vtkImageData, options = {}){
+export default function(vtkVolume, options = {}){
     let iop = options.imageOrientationPatient || "1,0,0,0,1,0";
     let ipp = options.imagePositionPatient || "0,0,0";
 
-    vtkImageData.setOrigin(0, 0, 0);
+    const origin = vtkVolume.origin;
+    const vtkImageData = vtkVolume.vtkImageData;
+
+    vtkImageData.setOrigin(origin[0], origin[1], origin[2]);
 
     // http://vtk.1045678.n5.nabble.com/vtkImageReslice-and-appending-slices-td5728537.html
     // https://public.kitware.com/pipermail/vtkusers/2012-January/071996.html
@@ -23,6 +26,10 @@ export default function(vtkImageData, options = {}){
     const [xSpacing, ySpacing, zSpacing] = vtkImageData.getSpacing();
     const [xMin, xMax, yMin, yMax, zMin, zMax] = vtkImageData.getExtent();
 
+    // console.log(x0, y0, z0);
+    // console.log(xSpacing, ySpacing, zSpacing);
+    // console.log(xMin, xMax, yMin, yMax, zMin, zMax);
+
     // SLICE SPACING/POSITION
     // Per volume; can probably add this to vtkImageData or meta for series/volume?
     if(ipp === "center"){
@@ -34,11 +41,6 @@ export default function(vtkImageData, options = {}){
 
         ipp = centerOfVolume.join();
     }
-
-    // These may all need to be changed if our axes change?
-    // centerOfVolume[0] += options.sliceDelta * xSpacing;
-    // centerOfVolume[1] += options.sliceDelta * ySpacing;
-    // centerOfVolume[2] += options.sliceDelta * zSpacing; // axial
 
     const axes = _calculateRotationAxes(iop, ipp); //cov); // ipp);
 
@@ -60,13 +62,11 @@ export default function(vtkImageData, options = {}){
     // the first three elements of the final column of the ResliceAxes matrix).
 
 
-    console.log('AXES: ', axes)
+    //console.log('AXES: ', axes)
     imageReslice.setResliceAxes(axes);
 
     const outputSlice = imageReslice.getOutputData();
     const spacing = outputSlice.getSpacing();
-
-    console.log('OUTPUT SLICE: ', outputSlice)
 
     const result = {
         slice: outputSlice,

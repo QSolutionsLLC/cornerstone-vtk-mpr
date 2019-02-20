@@ -7,13 +7,13 @@ import diff from '../math/diff.js';
 // return the index (0,1,2) of the z axis.
 export default function (orientation, metaData) {
   var ippArray = []
-  let index = determineOrientationIndex(orientation)
+  const xyzIndex = determineOrientationIndex(orientation)
 
   for (var value of metaData.values()) {
     let ipp = value.imagePositionPatient
-    if (index === 0) {
+    if (xyzIndex === 0) {
       ippArray.push(ipp.x || ipp[0])
-    } else if (index === 1) {
+    } else if (xyzIndex === 1) {
       ippArray.push(ipp.y || ipp[1])
     } else {
       ippArray.push(ipp.z || ipp[2])
@@ -23,12 +23,19 @@ export default function (orientation, metaData) {
   ippArray.sort(function (a, b) {
     return a - b
   })
-  let meanSpacing = mean(diff(ippArray))
+  const meanSpacing = mean(diff(ippArray))
+
+  // Find origin from positions
+  const originPositionAlongAcqAxis = ippArray[0];
+  const originImagePlane =  Array.from(metaData.values()).find(meta => {
+    return meta.imagePositionPatient[xyzIndex] === originPositionAlongAcqAxis;
+  });
 
   var obj = {
     spacing: meanSpacing,
     positions: ippArray,
-    xyzIndex: index
+    origin: originImagePlane.imagePositionPatient,
+    xyzIndex
   }
   return obj
 }
