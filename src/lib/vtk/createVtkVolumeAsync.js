@@ -1,4 +1,5 @@
 import * as cornerstone from 'cornerstone-core';
+import { vec3 } from 'gl-matrix';
 //
 import vtkDataArray from 'vtk.js/Sources/Common/Core/DataArray';
 import vtkImageData from 'vtk.js/Sources/Common/DataModel/ImageData';
@@ -29,7 +30,6 @@ export default async function(seriesImageIds){
         multiComponent,
         spacing,
         zAxis,
-        origin
     } = _calculateDimensions(metaDataMap)
 
     if (multiComponent) {
@@ -37,11 +37,13 @@ export default async function(seriesImageIds){
     }
 
     const imageData = await _createVtkVolume(seriesImageIds, dimensions, spacing, zAxis);
+    const centerIpp = _getVolumeCenterIpp(imageData);
+
     const imageDataObject = {
         imageIds: seriesImageIds,
         orientation,
         vtkImageData: imageData,
-        origin,
+        centerIpp,
         zAxis
     }
 
@@ -148,7 +150,28 @@ function _calculateDimensions(metaDataMap){
         orientation,
         multiComponent,
         spacing: [xSpacing, ySpacing, zSpacing],
-        origin: zAxis.origin,
         zAxis
     }
+}
+
+/**
+ * Calculates the center IPP for the volume. Useful for displaying
+ * "best" slice on first render.
+ *
+ * @param {*} vtkImageData
+ * @returns {Vec3} - Float32Array contain the volume's center IPP
+ */
+function _getVolumeCenterIpp(vtkImageData){
+
+    const [x0, y0, z0] = vtkImageData.getOrigin();
+    const [xSpacing, ySpacing, zSpacing] = vtkImageData.getSpacing();
+    const [xMin, xMax, yMin, yMax, zMin, zMax] = vtkImageData.getExtent();
+
+    const centerOfVolume = vec3.fromValues(
+        x0 + xSpacing * 0.5 * (xMin + xMax),
+        y0 + ySpacing * 0.5 * (yMin + yMax),
+        z0 + zSpacing * 0.5 * (zMin + zMax)
+    )
+
+    return centerOfVolume;
 }

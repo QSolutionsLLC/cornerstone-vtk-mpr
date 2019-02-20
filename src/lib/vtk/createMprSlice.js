@@ -1,90 +1,39 @@
 import { mat4, vec3 } from 'gl-matrix';
 import vtkImageReslice from 'vtk.js/Sources/Imaging/Core/ImageReslice';
 
-function computeTopLeftIpp(iopArray, centerIpp, spacing, extent, origin) {
-  const distance = vec3.fromValues(
-    spacing[0] * extent[1],
-    spacing[1] * extent[3],
-    spacing[2] * extent[5]
-  );
 
-  const rowCosines = vec3.fromValues(
-    iopArray[0], iopArray[1], iopArray[2]
-  );
-  const colCosines = vec3.fromValues(
-    iopArray[3], iopArray[4], iopArray[5]
-  );
-
-  let colTranslate = vec3.create();
-  vec3.multiply(colTranslate, colCosines, distance);
-  vec3.scale(colTranslate, colTranslate, -0.5);
-
-  let rowTranslate = vec3.create();
-  vec3.multiply(rowTranslate, rowCosines, distance);
-  vec3.scale(rowTranslate, rowTranslate, -0.5);
-
-  const centerIppVec = vec3.fromValues(...centerIpp);
-
-  const topLeftIpp = vec3.create();
-  vec3.add(topLeftIpp, centerIppVec, colTranslate);
-  vec3.add(topLeftIpp, topLeftIpp, rowTranslate);
-
-  return topLeftIpp;
-}
+// http://vtk.1045678.n5.nabble.com/vtkImageReslice-and-appending-slices-td5728537.html
+// https://public.kitware.com/pipermail/vtkusers/2012-January/071996.html
+// http://vtk.1045678.n5.nabble.com/vtkImageReslice-Rendering-slice-is-stretched-for-oblique-planes-if-no-OutputExtent-is-set-td5148691.html
+// However, when you use vtkImageReslice to do oblique
+// slices, I recommend that you always set the OutputExtent,
+// OutputSpacing, and OutputOrigin for vtkImageReslice.
+// The code that vtkImageReslice uses to "guess" these
+// values is really only useful for orthogonal reslicing.
+// https://vtkusers.public.kitware.narkive.com/HgihE8by/adjusting-vtkimagereslice-extent-when-slicing-a-volume
 
 // Could be our PixelSpacing Issue:
-// https://cmake.org/pipermail/igstk-developers/2005-November/000507.html
+// https://public.kitware.com/pipermail/vtkusers/2008-September/048181.html
 export default function(vtkVolume, options = {}){
-    let iop = options.imageOrientationPatient || "1,0,0,0,1,0";
-    let ipp = options.imagePositionPatient || "0,0,0";
+    const iop = options.imageOrientationPatient || "1,0,0,0,1,0";
+    const ipp = options.imagePositionPatient || "0,0,0";
 
     const vtkImageData = vtkVolume.vtkImageData;
-
-    //console.log('origin', origin)
-    //vtkImageData.setOrigin(100, 100, 0);
-    /// vtkImageData.setOrigin(origin[0], origin[1], origin[2]);
-
-    // http://vtk.1045678.n5.nabble.com/vtkImageReslice-and-appending-slices-td5728537.html
-    // https://public.kitware.com/pipermail/vtkusers/2012-January/071996.html
-    // http://vtk.1045678.n5.nabble.com/vtkImageReslice-Rendering-slice-is-stretched-for-oblique-planes-if-no-OutputExtent-is-set-td5148691.html
-    // However, when you use vtkImageReslice to do oblique
-    // slices, I recommend that you always set the OutputExtent,
-    // OutputSpacing, and OutputOrigin for vtkImageReslice.
-    // The code that vtkImageReslice uses to "guess" these
-    // values is really only useful for orthogonal reslicing.
-    // https://vtkusers.public.kitware.narkive.com/HgihE8by/adjusting-vtkimagereslice-extent-when-slicing-a-volume
-
-    const origin = vtkImageData.getOrigin();
-    const [x0, y0, z0] = vtkImageData.getOrigin();
     const [xSpacing, ySpacing, zSpacing] = vtkImageData.getSpacing();
     const [xMin, xMax, yMin, yMax, zMin, zMax] = vtkImageData.getExtent();
 
-    /*console.log(x0, y0, z0);
-    console.log(xSpacing, ySpacing, zSpacing);
-    console.log(xMin, xMax, yMin, yMax, zMin, zMax);
-    console.log(x0 + xMax * xSpacing);
-    console.log(y0 + yMax * ySpacing);
-    console.log(z0 + zMax * zSpacing);*/
-
     // SLICE SPACING/POSITION
     // Per volume; can probably add this to vtkImageData or meta for series/volume?
-    if(ipp === "center"){
-
-        const centerOfVolume = []
-        centerOfVolume[0] = x0 + xSpacing * 0.5 * (xMin + xMax);
-        centerOfVolume[1] = y0 + ySpacing * 0.5 * (yMin + yMax);
-        centerOfVolume[2] = z0 + zSpacing * 0.5 * (zMin + zMax);
-
-        ipp = centerOfVolume.join();
-    }
+    const ippVec3 = ipp === "center"
+        ? vtkVolume.centerIpp
+        : ipp.split(',').map(parseFloat)
 
     const volumeSpacing = [xSpacing, ySpacing, zSpacing];
     const volumeExtent = [xMin, xMax, yMin, yMax, zMin, zMax];
     const iopArray = iop.split(',').map(parseFloat);
-    const ippArray = ipp.split(',').map(parseFloat);
-    const topLeftOfImageIPP = computeTopLeftIpp(iopArray, ippArray, volumeSpacing, volumeExtent, origin)
+    const topLeftOfImageIPP = computeTopLeftIpp(iopArray, ippVec3, volumeSpacing, volumeExtent)
 
-    const axes = _calculateRotationAxes(iopArray, topLeftOfImageIPP); //cov); // ipp);
+    const axes = _calculateRotationAxes(iopArray, topLeftOfImageIPP);
 
     const imageReslice = vtkImageReslice.newInstance();
     imageReslice.setInputData(vtkImageData);    // Our volume
@@ -92,17 +41,6 @@ export default function(vtkVolume, options = {}){
     imageReslice.setBackgroundColor(255, 255, 255, 255)
 
     // mat4.rotateX(axes, axes, options.rotation * Math.PI / 180);
-
-    // https://public.kitware.com/pipermail/vtkusers/2008-September/048181.html
-    // https://kitware.github.io/vtk-js/api/Common_Core_MatrixBuilder.html
-    // setElement(int i, int j, double value)
-    // https://vtk.org/doc/nightly/html/classvtkMatrix4x4.html#a6413522a56a1b78889db95a7427cb439
-    // Axial
-    // Set the point through which to slice
-    // Similar to: https://vtk.org/doc/nightly/html/classvtkImageReslice.html#details
-    // `setResliceAxesOrigin(x, y, z)`
-    // the first three elements of the final column of the ResliceAxes matrix).
-
 
     //console.log('AXES: ', axes)
     imageReslice.setResliceAxes(axes);
@@ -128,6 +66,38 @@ export default function(vtkVolume, options = {}){
 
     return result;
 }
+
+function computeTopLeftIpp(iopArray, centerIpp, spacing, extent) {
+    const distance = vec3.fromValues(
+      spacing[0] * extent[1],
+      spacing[1] * extent[3],
+      spacing[2] * extent[5]
+    );
+  
+    const rowCosines = vec3.fromValues(
+      iopArray[0], iopArray[1], iopArray[2]
+    );
+    const colCosines = vec3.fromValues(
+      iopArray[3], iopArray[4], iopArray[5]
+    );
+  
+    let colTranslate = vec3.create();
+    vec3.multiply(colTranslate, colCosines, distance);
+    vec3.scale(colTranslate, colTranslate, -0.5);
+  
+    let rowTranslate = vec3.create();
+    vec3.multiply(rowTranslate, rowCosines, distance);
+    vec3.scale(rowTranslate, rowTranslate, -0.5);
+  
+    const centerIppVec = vec3.fromValues(...centerIpp);
+  
+    const topLeftIpp = vec3.create();
+    vec3.add(topLeftIpp, centerIppVec, colTranslate);
+    vec3.add(topLeftIpp, topLeftIpp, rowTranslate);
+  
+    return topLeftIpp;
+  }
+  
 
 function _calculateRotationAxes(iopArray, ippArray){
     const rowCosines = vec3.fromValues(
