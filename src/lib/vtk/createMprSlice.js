@@ -15,36 +15,36 @@ import vtkImageReslice from 'vtk.js/Sources/Imaging/Core/ImageReslice';
 // Could be our PixelSpacing Issue:
 // https://public.kitware.com/pipermail/vtkusers/2008-September/048181.html
 export default function(vtkVolume, options = {}){
+    // Input
+    const vtkImageData = vtkVolume.vtkImageData;
     const iop = options.imageOrientationPatient || "1,0,0,0,1,0";
     const ipp = options.imagePositionPatient || "0,0,0";
 
-    const vtkImageData = vtkVolume.vtkImageData;
-    const [xSpacing, ySpacing, zSpacing] = vtkImageData.getSpacing();
-    const [xMin, xMax, yMin, yMax, zMin, zMax] = vtkImageData.getExtent();
+    // Volume values
+    const volumeSpacing = vtkImageData.getSpacing(); // [xSpacing, ySpacing, zSpacing]
+    const volumeExtent = vtkImageData.getExtent(); // [xMin, xMax, yMin, yMax, zMin, zMax] 
 
-    // SLICE SPACING/POSITION
-    // Per volume; can probably add this to vtkImageData or meta for series/volume?
+    // Inputs to vec3
+    const iopArray = iop.split(',').map(parseFloat);
+    const rowCosinesVec3 = vec3.fromValues(iopArray[0], iopArray[1], iopArray[2]);
+    const colCosinesVec3 = vec3.fromValues(iopArray[3], iopArray[4], iopArray[5]);
     const ippVec3 = ipp === "center"
         ? vtkVolume.centerIpp
         : ipp.split(',').map(parseFloat)
 
-    const volumeSpacing = [xSpacing, ySpacing, zSpacing];
-    const volumeExtent = [xMin, xMax, yMin, yMax, zMin, zMax];
-    const iopArray = iop.split(',').map(parseFloat);
-    const topLeftOfImageIPP = computeTopLeftIpp(iopArray, ippVec3, volumeSpacing, volumeExtent)
-
-    const axes = _calculateRotationAxes(iopArray, topLeftOfImageIPP);
-
-    const imageReslice = vtkImageReslice.newInstance();
-    imageReslice.setInputData(vtkImageData);    // Our volume
-    imageReslice.setOutputDimensionality(2);    // We want a "slice", not a volume
-    imageReslice.setBackgroundColor(255, 255, 255, 255)
-
+    // Maths
+    const topLeftOfImageIPP = computeTopLeftIpp(rowCosinesVec3, colCosinesVec3, ippVec3, volumeSpacing, volumeExtent)
+    const axes = _calculateRotationAxes(rowCosinesVec3, colCosinesVec3, topLeftOfImageIPP);
     // mat4.rotateX(axes, axes, options.rotation * Math.PI / 180);
 
-    //console.log('AXES: ', axes)
-    imageReslice.setResliceAxes(axes);
+    // Setup vtkImageReslice
+    const imageReslice = vtkImageReslice.newInstance();
+    imageReslice.setInputData(vtkImageData);                // Our volume
+    imageReslice.setOutputDimensionality(2);                // We want a "slice", not a volume
+    imageReslice.setBackgroundColor(255, 255, 255, 255);    // Black background
+    imageReslice.setResliceAxes(axes);                      // Rotational Axes
 
+    // Pull the lever!
     const outputSlice = imageReslice.getOutputData();
     const spacing = outputSlice.getSpacing();
 
@@ -67,18 +67,11 @@ export default function(vtkVolume, options = {}){
     return result;
 }
 
-function computeTopLeftIpp(iopArray, centerIpp, spacing, extent) {
+function computeTopLeftIpp(rowCosines, colCosines, centerIpp, spacing, extent) {
     const distance = vec3.fromValues(
       spacing[0] * extent[1],
       spacing[1] * extent[3],
       spacing[2] * extent[5]
-    );
-  
-    const rowCosines = vec3.fromValues(
-      iopArray[0], iopArray[1], iopArray[2]
-    );
-    const colCosines = vec3.fromValues(
-      iopArray[3], iopArray[4], iopArray[5]
     );
   
     let colTranslate = vec3.create();
@@ -99,13 +92,33 @@ function computeTopLeftIpp(iopArray, centerIpp, spacing, extent) {
   }
   
 
-function _calculateRotationAxes(iopArray, ippArray){
-    const rowCosines = vec3.fromValues(
-        iopArray[0], iopArray[1], iopArray[2]
-    );
-    const colCosines = vec3.fromValues(
-        iopArray[3], iopArray[4], iopArray[5]
-    );
+/**
+ * Creates a 4x4 matrix that vtk can use as a "rotation matrix". The values
+ * correspond to:
+ * 
+ * ux, uy, uz, 0
+ * vx, vy, vz, 0
+ * wx, wy, wz, 0
+ * px, py, pz, 1
+ * 
+ * ux, uy, uz, vx, vy, vz - "ImageOrientationPatient"
+ * w - cross_product(u,v)
+ * px, py, pz - "ImagePositionPatient"
+ * 
+ * ImagePositionPatient: [60.3642578125, 170.3642578125, -32]
+ * ImageOrientationPatient: [-1, 0, 0, 0, -1, 0]
+ * RowCosines: [-1, 0, 0]
+ * ColumnCosines: [0, -1, 0]
+ * 
+ * Reference: https://public.kitware.com/pipermail/vtkusers/2012-November/077297.html
+ * Reference: http://nipy.org/nibabel/dicom/dicom_orientation.html
+ *
+ * @param {Float32Array} rowCosines
+ * @param {Float32Array} colCosines
+ * @param {Float32Array} ippArray
+ * @returns {Mat4} - 4x4 Rotation Matrix
+ */
+function _calculateRotationAxes(rowCosines, colCosines, ippArray){
     let wCrossProd = vec3.create()
     vec3.cross(wCrossProd, rowCosines, colCosines);
 
@@ -118,41 +131,3 @@ function _calculateRotationAxes(iopArray, ippArray){
 
     return axes;
 }
-
-// What values correspond to:
-// https://public.kitware.com/pipermail/vtkusers/2012-November/077297.html
-// http://nipy.org/nibabel/dicom/dicom_orientation.html
-// ux, uy, uz, 0
-// vx, vy, vz, 0
-// wx, wy, wz, 0
-// px, py, pz, 1
-//
-// ux, uy, uz, vx, vy, vz is from the "ImageOrientationPatient"
-// w = cross_product(u,v)
-// px, py, pz is from "ImagePositionPatient"
-//
-// Example values:
-//
-// ImagePositionPatient: [60.3642578125, 170.3642578125, -32]
-// ImageOrientationPatient: [-1, 0, 0, 0, -1, 0]
-// RowCosines: [-1, 0, 0]
-// ColumnCosines: [0, -1, 0]
-
-// https://public.kitware.com/pipermail/vtkusers/2013-January/078280.html
-// the ResliceAxes matrix
-// >defines a coordinate transformation that will be applied to the plane
-// >Z=0 in order to generate an oblique plane that slices through your
-// >input data.  A good way to think about it is that the 1st and 2nd
-// >columns of the matrix are the basis vectors of the oblique plane, the
-// >3rd column is the normal of the oblique plane, and the 4th column is
-// >the "origin" of the oblique plane.  If you call SetOutputOrigin(0,0,0)
-// >then the 4th column of the reslice matrix will precisely define the 3D
-// >point at the corner of your oblique plane.
-
-// r, r, r, r, // Basis vector      :: rotation
-// r, r, r, r, // Basis vector      :: rotation
-// r, r, r, r, // Normal of oblique :: rotation
-// v, v, v, 1  // "origin" :: "translation"
-
-// r -> rotation
-// v -> vector length
