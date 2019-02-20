@@ -17,6 +17,8 @@ import cornerstone, {
     store,
     toolColors,
   } from 'cornerstone-tools'
+
+  import renderReferenceLine from './renderReferenceLine.js';
   import getMprUrl from './lib/getMprUrl.js'
   import tryGetVtkVolumeForSeriesNumber from './lib/vtk/tryGetVtkVolumeForSeriesNumber.js';
 
@@ -106,10 +108,38 @@ import cornerstone, {
     renderToolData(evt) {
       const eventData = evt.detail
       const element = eventData.element
+      const enabledElement = getEnabledElement(element)
       const toolData = getToolState(evt.currentTarget, this.name)
-      console.log(toolData)
+      const context = getNewContext(eventData.canvasContext.canvas);
+      
+      ///// -----------------
+
+      store.state.enabledElements.forEach(refElement => {
+        const image = cornerstone.getImage(element);
+        const refImage = cornerstone.getImage(refElement)
+  
+        // duck out if target is us
+        if (refElement === element) {
+          return;
+        }
+        // Don't draw reference line for non-mpr
+        if(!refImage || !refImage.imageId.includes('mpr')){
+          // console.warn('skipping; wrong image scheme');
+          return;
+        }
+
+        const imagePlane = metaData.get('imagePlaneModule', image.imageId);
+        const refImagePlane = metaData.get('imagePlaneModule', refImage.imageId);
+
+        renderReferenceLine(context, element, imagePlane, refImagePlane)
+      });
+
+
+      //// ------------------
+      
+      
+      // console.log(toolData)
       if (!toolData || !toolData.data || !toolData.data.length) return
-      const context = getNewContext(eventData.canvasContext.canvas)
       toolData.data.forEach(data => {
         if (data.visible === false) return
         if (!data.point) return
