@@ -39,7 +39,6 @@ async function kickstartApp(){
     ]);
     const axialIopAsString = axialIop.join();
     const axialMprUrl = getMprUrl(axialIopAsString);
-    console.log('axialMprImageUrl: ', axialMprUrl)
     
     cornerstone.loadAndCacheImage(axialMprUrl).then(image => {
         cornerstone.displayImage(mprAxialSeriesElement, image);
@@ -53,7 +52,6 @@ async function kickstartApp(){
     ]);
     const coronalIopAsString = coronalIop.join();
     const coronalMprUrl = getMprUrl(coronalIopAsString);
-    console.log('coronalMprImageUrl: ', coronalMprUrl)
 
     cornerstone.loadAndCacheImage(coronalMprUrl).then(image => {
         cornerstone.displayImage(mprCoronalSeriesElement, image);
@@ -68,7 +66,6 @@ async function kickstartApp(){
     ]);
     const sagittalIopAsString = sagittalIop.join();
     const sagittalMprUrl = getMprUrl(sagittalIopAsString);
-    console.log('sagittalMprImageUrl: ', sagittalMprUrl)
 
     cornerstone.loadAndCacheImage(sagittalMprUrl).then(image => {
         cornerstone.displayImage(mprSagittalSeriesElement, image);
