@@ -59,7 +59,7 @@ async function _createVtkVolume(seriesImageIds, dimensions, spacing, zAxis){
     })
 
     // TODO: Is this a better place to set this?
-    // vtkVolume.setOrigin(zAxis.origin)
+    vtkVolume.setOrigin(zAxis.origin)
     vtkVolume.setDimensions(dimensions)
     vtkVolume.setSpacing(spacing)
     vtkVolume.getPointData().setScalars(scalarArray)
@@ -71,7 +71,7 @@ async function _createVtkVolume(seriesImageIds, dimensions, spacing, zAxis){
         const image = await cornerstone.loadAndCacheImage(imageUrl);
         const { imagePositionPatient } = await tryGetMetadataModuleAsync('imagePlaneModule', imageId);
         const sliceIndex = getSliceIndex(zAxis, imagePositionPatient);
-        
+
         insertSlice(vtkVolume, image.getPixelData(), sliceIndex);
     }
 
@@ -115,9 +115,9 @@ async function _getTypedPixelArray(imageId, dimensions){
  */
 async function _getSeriesMetaDataMap(seriesImageIds){
     const metaDataMap = new Map()
-    
+
     for (let i = 0; i < seriesImageIds.length; i++) {
-      const imageId = seriesImageIds[i];  
+      const imageId = seriesImageIds[i];
       const metaData = await tryGetMetadataModuleAsync('imagePlaneModule', imageId);
       metaDataMap.set(imageId, metaData);
     }

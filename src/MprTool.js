@@ -26,20 +26,20 @@ import cornerstone, {
   } from './lib/wait.js'
 
   import getMprUrl from './lib/getMprUrl.js'
-  
+
   const BaseAnnotationTool = csTools('base/BaseAnnotationTool')
-  
+
   // Drawing
   const drawLine = csTools('drawing/drawLine')
   const getNewContext = csTools('drawing/getNewContext')
-  
+
   // Util
   const imagePointToPatientPoint = csTools('util/imagePointToPatientPoint')
   const projectPatientPointToImagePlane = csTools(
     'util/projectPatientPointToImagePlane'
   )
-  
-  
+
+
   /**
    * @export @public @class
    * @name AstCrossPoint
@@ -64,17 +64,17 @@ import cornerstone, {
         },
       }
       const initialConfiguration = Object.assign(defaultConfig, configuration)
-  
+
       super(initialConfiguration)
-  
+
       this.initialConfiguration = initialConfiguration
       this.mergeOptions(initialConfiguration.options)
-  
+
       this.updatePoint = _updatePoint.bind(this)
       this.clearPointsIfNotSynced = _clearPointsIfNotSynced.bind(this)
       this.syncedId = null
     }
-  
+
     activeCallback(element, options) {
       this.element.removeEventListener(
         EVENTS.NEW_IMAGE,
@@ -82,15 +82,15 @@ import cornerstone, {
       )
       this.element.addEventListener(EVENTS.NEW_IMAGE, this.clearPointsIfNotSynced)
     }
-  
+
     passiveCallback(element, options) {
       setToolDisabled(this.name, options)
     }
-  
+
     enabledCallback(element, options) {
       setToolDisabled(this.name, options)
     }
-  
+
     disabledCallback(element, options) {
       this.element.removeEventListener(
         EVENTS.NEW_IMAGE,
@@ -107,12 +107,12 @@ import cornerstone, {
         }
       })
     }
-  
+
     // BaseAnnotationTool, despite no persistent
     pointNearTool() {
       return false
     }
-  
+
     /**
      *
      *
@@ -131,7 +131,7 @@ import cornerstone, {
         _drawCrosshairs(data, context, element)
       })
     }
-  
+
     /**
      * We use the post mouse down hook so we don't accidentally prevent passive
      * tool manipulation.
@@ -144,37 +144,37 @@ import cornerstone, {
       this.updatePoint(evt)
       evt.preventDefault()
       evt.stopPropagation()
-  
+
       const consumeEvent = true
       return consumeEvent
     }
-  
+
     mouseDragCallback(evt) {
       this.updatePoint(evt)
       evt.preventDefault()
       evt.stopPropagation()
     }
-  
+
     mouseMoveCallback(evt) {
       return false
     }
-  
+
     postTouchStartCallback(evt) {
       this.updatePoint(evt)
       evt.preventDefault()
       evt.stopPropagation()
-  
+
       const consumeEvent = true
       return consumeEvent
     }
-  
+
     touchDragCallback(evt) {
       this.updatePoint(evt)
       evt.preventDefault()
       evt.stopPropagation()
     }
   }
-  
+
   /**
    *
    *
@@ -205,7 +205,7 @@ import cornerstone, {
     drawLine(context, element, top, bottom, { color }, 'canvas')
     drawLine(context, element, left, right, { color }, 'canvas')
   }
-  
+
   /**
    *
    *
@@ -215,7 +215,7 @@ import cornerstone, {
   const _updatePoint = function(evt) {
     const eventData = evt.detail
     evt.stopImmediatePropagation()
-    
+
     const sourceElement = evt.currentTarget
     const sourceEnabledElement = getEnabledElement(sourceElement)
     const sourceImageId = sourceEnabledElement.image.imageId
@@ -228,9 +228,11 @@ import cornerstone, {
       !sourceImagePlane.frameOfReferenceUID
     )
       return
-  
+
 
     const sourceImagePoint = eventData.currentPoints.image
+    console.log(sourceImagePoint);
+    console.log(sourceImagePlane);
     // Uses rowCosines, columnCosines, imagePositionPatient, and row/columnPixelSpacing
     const sourceIpp = imagePointToPatientPoint(
       sourceImagePoint,
@@ -240,7 +242,7 @@ import cornerstone, {
     const vectorIpp = vec3.fromValues(sourceIpp.x, sourceIpp.y, sourceIpp.z)
     console.log('~~ VECTOR IPP: ', vectorIpp)
     //const sourcePointPlanePosition = vec3.dot(vec3.clone(normal), localSourcePatientPoint)
-  
+
     store.state.enabledElements.forEach(async targetElement => {
       const targetImage = cornerstone.getImage(targetElement)
 
@@ -263,11 +265,11 @@ import cornerstone, {
 
       // Clear
       // clearToolState(targetElement, this.name)
-  
+
       // Update
       // rowCosines and columnCosines should be the same
       // We need _ideal_ imagePositionPatient values (x, y, z)
-      // Assuming those values are within our bounds 
+      // Assuming those values are within our bounds
 
     //   const bestImageIdIndex = _findBestImageIdIndex(
     //     targetElementCurrentImage,
@@ -281,7 +283,7 @@ import cornerstone, {
         //   const targetTool = store.state.tools.find(
         //     tool => tool.element === targetElement && tool.name === this.name
         //   )
-  
+
         //   if (targetTool) {
         //     targetTool.syncedId = imageId
         //   }
@@ -290,10 +292,10 @@ import cornerstone, {
 
         //   seriesStack.currentImageIdIndex = bestImageIdIndex
         //   displayImage(targetElement, image, getViewport(targetElement))
-  
+
         //   const endLoadingHandler = loadHandlerManager.getEndLoadHandler()
         //   if (endLoadingHandler) endLoadingHandler(targetElement, image)
-  
+
         //   // New ToolState w/ bestImageId
         //   const targetMeta = metaData.get('imagePlaneModule', imageId)
         //   if (
@@ -303,7 +305,7 @@ import cornerstone, {
         //     !targetMeta.imagePositionPatient
         //   )
         //     return
-  
+
         //   const crossPoint = projectPatientPointToImagePlane(
         //     sourcePatientPoint,
         //     targetMeta
@@ -324,28 +326,28 @@ import cornerstone, {
         //     errorLoadingHandler(targetElement, imageId, err)
         }
       // }
-  
+
       // Force redraw
       // updateImage(targetElement)
     })
   }
-  
+
   const _clearPointsIfNotSynced = function() {
     const imageId = getEnabledElement(this.element).image.imageId
-  
+
     if (!imageId) return // No image
     if (!this.syncedId) return // No syncedId
     if (imageId === this.syncedId) return // SyncedId matches :+1:
-  
+
     store.state.enabledElements.forEach(enabledElement =>
       clearToolState(enabledElement, this.name)
     )
   }
-  
+
   const _loadImage = function(seriesStack, bestImageIdIndex, targetElement) {
     const startLoadingHandler = loadHandlerManager.getStartLoadHandler()
     if (startLoadingHandler) startLoadingHandler(targetElement)
-  
+
     let loader
     if (seriesStack.preventCache) {
       loader = loadImage(seriesStack.imageIds[bestImageIdIndex])
@@ -354,7 +356,7 @@ import cornerstone, {
     }
     return loader
   }
-  
+
   // If this is an oblique...
   // How do we best walk the index?
   const _findBestImageIdIndex = function(
@@ -387,14 +389,14 @@ import cornerstone, {
       // A vector that is perpendicular to both `column` and `row` and thus 'normal'
       let normal = vec3.create();
       vec3.cross(normal, column, row)
-      
+
       // Distance from image's plane to normal's origin
       const targetPlanePosition = vec3.dot(vec3.clone(normal), imagePosition)
-   
+
       // Distance from a same-oriented plane containing the source point to normal's origin
       const localSourcePatientPoint = vec3.fromValues(sourcePatientPoint.x, sourcePatientPoint.y, sourcePatientPoint.z)
       const sourcePointPlanePosition = vec3.dot(vec3.clone(normal), localSourcePatientPoint)
-      
+
       // Distance between derived target and source planes
       const distance = Math.abs(targetPlanePosition - sourcePointPlanePosition)
       console.log(`${targetPlanePosition} - ${sourcePointPlanePosition} = ${distance}`)
@@ -407,10 +409,10 @@ import cornerstone, {
 
 
       // 0 - Axial - degRotationX 45 - sliceIndex
-      // 1 - Coronal - degRotation - 
-      // 2 - Sagittal - degRotation - 
+      // 1 - Coronal - degRotation -
+      // 2 - Sagittal - degRotation -
 
-  
+
     return distance
   }
-  
+
