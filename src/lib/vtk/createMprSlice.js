@@ -32,10 +32,6 @@ export default function(vtkVolume, options = {}){
     const iop = options.imageOrientationPatient || "1,0,0,0,1,0";
     const ipp = options.imagePositionPatient || "0,0,0";
 
-    // Volume values
-    const volumeSpacing = vtkImageData.getSpacing(); // [xSpacing, ySpacing, zSpacing]
-    const volumeExtent = vtkImageData.getExtent(); // [xMin, xMax, yMin, yMax, zMin, zMax] 
-
     // Inputs to vec3
     const iopArray = iop.split(',').map(parseFloat);
     const rowCosinesVec3 = vec3.fromValues(iopArray[0], iopArray[1], iopArray[2]);
@@ -47,8 +43,8 @@ export default function(vtkVolume, options = {}){
     // Maths
     // TODO: Move `computeTopLeftIpp` to tool(s)
     // TODO: MetaDataProvider to grab `volumeSpacing` and `volumeExtent` for a given volume?
-    const topLeftOfImageIPP = computeTopLeftIpp(rowCosinesVec3, colCosinesVec3, ippVec3, volumeSpacing, volumeExtent)
-    const axes = _calculateRotationAxes(rowCosinesVec3, colCosinesVec3, topLeftOfImageIPP);
+    // const topLeftOfImageIPP = computeTopLeftIpp(rowCosinesVec3, colCosinesVec3, ippVec3, volumeSpacing, volumeExtent)
+    const axes = _calculateRotationAxes(rowCosinesVec3, colCosinesVec3, ippVec3);
     // mat4.rotateX(axes, axes, options.rotation * Math.PI / 180);
 
     // Setup vtkImageReslice
@@ -80,30 +76,6 @@ export default function(vtkVolume, options = {}){
 
     return result;
 }
-
-function computeTopLeftIpp(rowCosines, colCosines, centerIpp, spacing, extent) {
-    const distance = vec3.fromValues(
-      spacing[0] * extent[1],
-      spacing[1] * extent[3],
-      spacing[2] * extent[5]
-    );
-  
-    let colTranslate = vec3.create();
-    vec3.multiply(colTranslate, colCosines, distance);
-    vec3.scale(colTranslate, colTranslate, -0.5);
-  
-    let rowTranslate = vec3.create();
-    vec3.multiply(rowTranslate, rowCosines, distance);
-    vec3.scale(rowTranslate, rowTranslate, -0.5);
-  
-    const centerIppVec = vec3.fromValues(...centerIpp);
-  
-    const topLeftIpp = vec3.create();
-    vec3.add(topLeftIpp, centerIppVec, colTranslate);
-    vec3.add(topLeftIpp, topLeftIpp, rowTranslate);
-  
-    return topLeftIpp;
-  }
   
 
 /**

@@ -1,6 +1,5 @@
 import * as cornerstone from 'cornerstone-core';
 import { import as csTools } from 'cornerstone-tools';
-
 import getMprUrl from './lib/getMprUrl.js';
 
 const BaseTool = csTools('base/BaseTool')
@@ -39,8 +38,8 @@ export default class MprMouseWheelTool extends BaseTool {
     // TODO: Add key+value to MPR image's `imagePlaneModule` in `createMprSlice`
     // TODO: Best way to determine IPP bounds?
     const ipp = direction > 0 
-      ? imagePlane.imagePositionPatient.map(x => x + 1.5)
-      : imagePlane.imagePositionPatient.map(x => x - 1.5)
+       ? imagePlane.imagePositionPatient.slice().map(x => x + 1.5)
+       : imagePlane.imagePositionPatient.slice().map(x => x - 1.5)
     
     const iopString = imagePlane.rowCosines.concat(imagePlane.columnCosines).join()
     const ippString = new Float32Array(ipp).join()

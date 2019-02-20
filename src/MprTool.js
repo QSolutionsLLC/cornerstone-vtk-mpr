@@ -26,6 +26,7 @@ import cornerstone, {
   } from './lib/wait.js'
 
   import getMprUrl from './lib/getMprUrl.js'
+  import tryGetVtkVolumeForSeriesNumber from './lib/vtk/tryGetVtkVolumeForSeriesNumber.js';
 
   const BaseAnnotationTool = csTools('base/BaseAnnotationTool')
 
@@ -140,8 +141,8 @@ import cornerstone, {
      * @returns {boolean} true - consumes event
      * @memberof AstCrossPoint
      */
-    postMouseDownCallback(evt) {
-      this.updatePoint(evt)
+    async postMouseDownCallback(evt) {
+      await this.updatePoint(evt)
       evt.preventDefault()
       evt.stopPropagation()
 
@@ -149,8 +150,8 @@ import cornerstone, {
       return consumeEvent
     }
 
-    mouseDragCallback(evt) {
-      this.updatePoint(evt)
+    async mouseDragCallback(evt) {
+      await this.updatePoint(evt)
       evt.preventDefault()
       evt.stopPropagation()
     }
@@ -159,8 +160,8 @@ import cornerstone, {
       return false
     }
 
-    postTouchStartCallback(evt) {
-      this.updatePoint(evt)
+    async postTouchStartCallback(evt) {
+      await this.updatePoint(evt)
       evt.preventDefault()
       evt.stopPropagation()
 
@@ -168,8 +169,8 @@ import cornerstone, {
       return consumeEvent
     }
 
-    touchDragCallback(evt) {
-      this.updatePoint(evt)
+    async touchDragCallback(evt) {
+      await this.updatePoint(evt)
       evt.preventDefault()
       evt.stopPropagation()
     }
@@ -212,41 +213,30 @@ import cornerstone, {
    * @param {*} evt
    * @returns
    */
-  const _updatePoint = function(evt) {
+  const _updatePoint = async function(evt) {
     const eventData = evt.detail
     evt.stopImmediatePropagation()
 
-    const sourceElement = evt.currentTarget
-    const sourceEnabledElement = getEnabledElement(sourceElement)
-    const sourceImageId = sourceEnabledElement.image.imageId
-    const sourceImagePlane = metaData.get('imagePlaneModule', sourceImageId)
-    if (
-      !sourceImagePlane ||
-      !sourceImagePlane.rowCosines ||
-      !sourceImagePlane.columnCosines ||
-      !sourceImagePlane.imagePositionPatient ||
-      !sourceImagePlane.frameOfReferenceUID
-    )
-      return
+    const element = evt.currentTarget;
+    const enabledElement = getEnabledElement(evt.currentTarget)
+    const imageId = enabledElement.image.imageId
+    const imagePlane = metaData.get('imagePlaneModule', imageId)
+    const imagePointXY = eventData.currentPoints.image
 
+    // The point we've clicked is the "center" we want for our crosspoint;
+    // However, our imageLoader uses the IPP as the "top left" for the slice
+    // We need to calculate what the "top left" _would be_ if our clicked ipp
+    // were in the center of a new slice
+    // TODO: Replace this with an MPR specific version so we can use vec3
+    // TODO: in metadata instead of old types?
+    const ipp = imagePointToPatientPoint(imagePointXY, imagePlane)
+    const ippVec3 = vec3.fromValues(ipp.x, ipp.y, ipp.z)
+    const ippTopLeftVec3 = await _findIppTopLeftForVolume(imagePlane, ippVec3)
 
-    const sourceImagePoint = eventData.currentPoints.image
-    console.log(sourceImagePoint);
-    console.log(sourceImagePlane);
-    // Uses rowCosines, columnCosines, imagePositionPatient, and row/columnPixelSpacing
-    const sourceIpp = imagePointToPatientPoint(
-      sourceImagePoint,
-      sourceImagePlane
-    )
-
-    const vectorIpp = vec3.fromValues(sourceIpp.x, sourceIpp.y, sourceIpp.z)
-    console.log('~~ VECTOR IPP: ', vectorIpp)
-    //const sourcePointPlanePosition = vec3.dot(vec3.clone(normal), localSourcePatientPoint)
-
-    store.state.enabledElements.forEach(async targetElement => {
+    store.state.enabledElements.forEach(targetElement => {
       const targetImage = cornerstone.getImage(targetElement)
 
-      if (targetElement === sourceElement) {
+      if (targetElement === element) {
         return;
       }
       if(!targetImage.imageId.includes('mpr')){
@@ -254,9 +244,9 @@ import cornerstone, {
         return;
       }
 
-      const targetImagePlaneMeta = metaData.get('imagePlaneModule', targetImage.imageId);
-      const iopString = targetImagePlaneMeta.rowCosines.concat(targetImagePlaneMeta.columnCosines).join()
-      const ippString = new Float32Array([vectorIpp[0], vectorIpp[1], vectorIpp[2]]).join()
+      const targetImagePlane = metaData.get('imagePlaneModule', targetImage.imageId);
+      const iopString = targetImagePlane.rowCosines.concat(targetImagePlane.columnCosines).join()
+      const ippString = new Float32Array([ippTopLeftVec3[0], ippTopLeftVec3[1], ippTopLeftVec3[2]]).join()
       const mprImageId = getMprUrl(iopString, ippString);
 
       loadAndCacheImage(mprImageId).then(image =>{
@@ -329,90 +319,58 @@ import cornerstone, {
 
       // Force redraw
       // updateImage(targetElement)
-    })
-  }
+  })
+}
 
-  const _clearPointsIfNotSynced = function() {
-    const imageId = getEnabledElement(this.element).image.imageId
+const _clearPointsIfNotSynced = function() {
+  const imageId = getEnabledElement(this.element).image.imageId
 
-    if (!imageId) return // No image
-    if (!this.syncedId) return // No syncedId
-    if (imageId === this.syncedId) return // SyncedId matches :+1:
+  if (!imageId) return // No image
+  if (!this.syncedId) return // No syncedId
+  if (imageId === this.syncedId) return // SyncedId matches :+1:
 
-    store.state.enabledElements.forEach(enabledElement =>
-      clearToolState(enabledElement, this.name)
-    )
-  }
+  store.state.enabledElements.forEach(enabledElement =>
+    clearToolState(enabledElement, this.name)
+  )
+}
 
-  const _loadImage = function(seriesStack, bestImageIdIndex, targetElement) {
-    const startLoadingHandler = loadHandlerManager.getStartLoadHandler()
-    if (startLoadingHandler) startLoadingHandler(targetElement)
+// TODO: We need something easier for store/retrieve/delete/clear than this
+// TODO: Not sure if there is a pattern we can repurpose or if this is a new thing
+async function _findIppTopLeftForVolume(imagePlane, ippCenter){
 
-    let loader
-    if (seriesStack.preventCache) {
-      loader = loadImage(seriesStack.imageIds[bestImageIdIndex])
-    } else {
-      loader = loadAndCacheImage(seriesStack.imageIds[bestImageIdIndex])
-    }
-    return loader
-  }
+  const rowCosines = imagePlane.rowCosines; 
+  const colCosines = imagePlane.columnCosines;
 
-  // If this is an oblique...
-  // How do we best walk the index?
-  const _findBestImageIdIndex = function(
-    targetImage,
-    sourcePatientPoint,
-    sourceFrameOfReference
-  ) {
+  // TODO: For "SeriesInstanceNumber" instead of series number?
+  // TODO: Or should we create a GUID per volume?
+  const vtkVolume = await tryGetVtkVolumeForSeriesNumber(0);
+  const vtkImageData = vtkVolume.vtkImageData;
+  const spacing = vtkImageData.getSpacing();
+  const extent = vtkImageData.getExtent();
 
-      if(!targetImage){
-          console.warn('no target image')
-          return;
-      }
-      if(!targetImage.imageId.includes('mpr')){
-          console.warn('skipping; wrong image scheme');
-          return;
-      }
-      // if (targetMeta.frameOfReferenceUID !== sourceFrameOfReference) continue
+  const topLeftIpp = _computeIppTopLeftForCenter(rowCosines, colCosines, ippCenter, spacing, extent);
 
-      const imageId = targetImage.imageId;
-      const targetMeta = metaData.get('imagePlaneModule', imageId)
-      if(!targetMeta){
-          console.warn('no imagePlaneModule');
-          return;
-      }
+  return topLeftIpp;
+}
 
-      const imagePosition = vec3.fromValues(...targetMeta.imagePositionPatient)
-      const row = vec3.fromValues(...targetMeta.rowCosines)
-      const column = vec3.fromValues(...targetMeta.columnCosines)
+function _computeIppTopLeftForCenter(rowCosines, colCosines, ippCenter, spacing, extent) {
+  const distance = vec3.fromValues(
+    spacing[0] * extent[1],
+    spacing[1] * extent[3],
+    spacing[2] * extent[5]
+  );
 
-      // A vector that is perpendicular to both `column` and `row` and thus 'normal'
-      let normal = vec3.create();
-      vec3.cross(normal, column, row)
+  let colTranslate = vec3.create();
+  vec3.multiply(colTranslate, colCosines, distance);
+  vec3.scale(colTranslate, colTranslate, -0.5);
 
-      // Distance from image's plane to normal's origin
-      const targetPlanePosition = vec3.dot(vec3.clone(normal), imagePosition)
+  let rowTranslate = vec3.create();
+  vec3.multiply(rowTranslate, rowCosines, distance);
+  vec3.scale(rowTranslate, rowTranslate, -0.5);
 
-      // Distance from a same-oriented plane containing the source point to normal's origin
-      const localSourcePatientPoint = vec3.fromValues(sourcePatientPoint.x, sourcePatientPoint.y, sourcePatientPoint.z)
-      const sourcePointPlanePosition = vec3.dot(vec3.clone(normal), localSourcePatientPoint)
+  const topLeftIpp = vec3.create();
+  vec3.add(topLeftIpp, ippCenter, colTranslate);
+  vec3.add(topLeftIpp, topLeftIpp, rowTranslate);
 
-      // Distance between derived target and source planes
-      const distance = Math.abs(targetPlanePosition - sourcePointPlanePosition)
-      console.log(`${targetPlanePosition} - ${sourcePointPlanePosition} = ${distance}`)
-
-
-      // 10, 10, 10
-      // px, py, pz
-      // Voxel: 2, 2, 4
-      // Oblique Step: Normal & PixelSpacing (range doesn't super matter)
-
-
-      // 0 - Axial - degRotationX 45 - sliceIndex
-      // 1 - Coronal - degRotation -
-      // 2 - Sagittal - degRotation -
-
-
-    return distance
-  }
-
+  return topLeftIpp;
+}
