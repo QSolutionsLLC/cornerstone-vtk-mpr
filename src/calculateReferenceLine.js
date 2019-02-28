@@ -17,17 +17,18 @@ const projectPatientPointToImagePlane = csTools('util/projectPatientPointToImage
    * @returns {Object}  The start and end points of the line to be drawn.
    */
   export default function(targetImagePlane, referenceImagePlane) {
-    const points = planePlaneIntersection(targetImagePlane, referenceImagePlane);
-
-    console.log(points);
+    const patientPoint = planePlaneIntersection(targetImagePlane, referenceImagePlane);
   
-    if (!points) {
+    if (!patientPoint) {
       return;
     }
-  
+
+    const start = projectPatientPointToImagePlane(patientPoint.start, targetImagePlane);
+    const end = projectPatientPointToImagePlane(patientPoint.end, targetImagePlane);
+
     return {
-      start: projectPatientPointToImagePlane(points.start, targetImagePlane),
-      end: projectPatientPointToImagePlane(points.end, targetImagePlane),
+      start,
+      end,
     };
   }
   
