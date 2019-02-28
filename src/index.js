@@ -26,10 +26,6 @@ async function kickstartApp(){
         cornerstone.displayImage(originalSeriesElement, image);
     });
 
-    // Display MPR Slice
-    //const coronalMprUrl = getMprUrl(1, 0, 0);
-    //const sagittalMprUrl = getMprUrl(2, 0, 0);
-
     // ~~ AXIAL
     // Image orientation patient (IOP)
     const axial = mat4.create();
