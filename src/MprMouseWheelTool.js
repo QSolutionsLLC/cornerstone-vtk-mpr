@@ -1,6 +1,9 @@
 import * as cornerstone from 'cornerstone-core';
-import { import as csTools } from 'cornerstone-tools';
+import { import as csTools, store } from 'cornerstone-tools';
 import getMprUrl from './lib/getMprUrl.js';
+import { vec3 } from 'gl-matrix';
+
+
 
 const BaseTool = csTools('base/BaseTool')
 
@@ -29,24 +32,46 @@ export default class MprMouseWheelTool extends BaseTool {
     const { direction: images, element } = evt.detail;
     const { loop, allowSkipping, invert } = this.configuration;
     const direction = invert ? -images : images;
+    const dir = direction > 0 ? 1 : -1;
     //
 
     const image = cornerstone.getImage(element)
     const imagePlane = cornerstone.metaData.get('imagePlaneModule', image.imageId)
 
-    // TODO: Best way to determine increment?
-    // TODO: Add key+value to MPR image's `imagePlaneModule` in `createMprSlice`
-    // TODO: Best way to determine IPP bounds?
-    const ipp = direction > 0 
-       ? imagePlane.imagePositionPatient.slice().map(x => x + 1.5)
-       : imagePlane.imagePositionPatient.slice().map(x => x - 1.5)
-    
+    // TODO: Use pixel spacing to determine best "step size"
+    // Ideally, minimum value where we would see pixel change
+    const stepSize = 1.5;
+    const iop = imagePlane.imageOrientationPatient
+    const rowCosines = vec3.fromValues(iop[0], iop[1], iop[2])
+    const colCosines = vec3.fromValues(iop[3], iop[4], iop[5])
+    let zedCosines = vec3.create();
+
+    vec3.cross(zedCosines, rowCosines, colCosines)
+
+    // Update position in the Zed direction
+    let ipp = imagePlane.imagePositionPatient.slice();
+    ipp[0] = ipp[0] + (zedCosines[0] * stepSize * dir);
+    ipp[1] = ipp[1] + (zedCosines[1] * stepSize * dir);
+    ipp[2] = ipp[2] + (zedCosines[2] * stepSize * dir);
+
     const iopString = imagePlane.rowCosines.concat(imagePlane.columnCosines).join()
     const ippString = new Float32Array(ipp).join()
     const mprImageUrl = getMprUrl(iopString, ippString);
 
     cornerstone.loadAndCacheImage(mprImageUrl).then(image => {
         cornerstone.displayImage(element, image);
+
+        store.state.enabledElements.forEach(refElement => {
+          const refImage = cornerstone.getImage(refElement)
+
+          // Don't draw reference line for non-mpr
+          if(!refImage || !refImage.imageId.includes('mpr')){
+            // console.warn('skipping; wrong image scheme');
+            return;
+          }
+
+          cornerstone.updateImage(refElement);
+        });
     })
   }
 }
