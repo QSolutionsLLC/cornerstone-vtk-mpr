@@ -17,13 +17,13 @@ const convertToVector3 = csTools('util/convertToVectro3');
  */
 export default function(context, targetElement, targetImagePlane, referenceImagePlane) {
 
-    // Target
-    const tRowCosines = convertToVector3(targetImagePlane.rowCosines);
-    const tColCosines = convertToVector3(targetImagePlane.columnCosines);
+  // Target
+  const tRowCosines = convertToVector3(targetImagePlane.rowCosines);
+  const tColCosines = convertToVector3(targetImagePlane.columnCosines);
 
-    // Reference
-    const rRowCosines = convertToVector3(referenceImagePlane.rowCosines);
-    const rColCosines = convertToVector3(referenceImagePlane.columnCosines);
+  // Reference
+  const rRowCosines = convertToVector3(referenceImagePlane.rowCosines);
+  const rColCosines = convertToVector3(referenceImagePlane.columnCosines);
 
   // The image plane normals must be > 30 degrees apart
   const targetNormal = tRowCosines
@@ -36,8 +36,9 @@ export default function(context, targetElement, targetImagePlane, referenceImage
 
   angleInRadians = Math.abs(angleInRadians);
   if (angleInRadians < 0.5) {
-    // 0.5 radians = ~30 degrees
-    console.warn('angle to small for ref lines')
+    const angleInDegrees = angleInRadians * (180 / Math.PI)
+    console.warn(`${angleInDegrees} angle is to small for reference lines.`)
+    
     return;
   }
 
@@ -46,13 +47,11 @@ export default function(context, targetElement, targetImagePlane, referenceImage
     referenceImagePlane
   );
 
-  console.log('refLine: ', referenceLine)
-
   if (!referenceLine) {
     return;
   }
 
-  const color = toolColors.getActiveColor();
+  const color = referenceImagePlane.referenceLineColor || toolColors.getActiveColor();
 
   // Draw the referenceLines
   context.setTransform(1, 0, 0, 1, 0, 0);

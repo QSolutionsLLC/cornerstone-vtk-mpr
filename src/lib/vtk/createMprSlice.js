@@ -30,7 +30,19 @@ export default function(vtkVolume, options = {}){
     // Input
     const vtkImageData = vtkVolume.vtkImageData;
     const iop = options.imageOrientationPatient || "1,0,0,0,1,0";
-    const ipp = options.imagePositionPatient || "0,0,0";
+    const ipp = options.imagePositionPatient || "0,0,0"; // Top Left of slice
+
+    const plane = iop === "1,0,0,0,1,0"
+        ? 'axial'
+        : iop === "1,0,0,0,0,-1"
+        ? 'coronal'
+        : 'sagittal'
+
+    const color = plane === 'axial'
+        ? 'pink'
+        : plane === 'coronal'
+        ? 'dodgerblue'
+        : 'yellowgreen'
 
     // Inputs to vec3
     const iopArray = iop.split(',').map(parseFloat);
@@ -40,29 +52,88 @@ export default function(vtkVolume, options = {}){
         ? vtkVolume.centerIpp
         : ipp.split(',').map(parseFloat)
 
+    let planedIpp;
+    
+    const [x0, y0, z0] = vtkImageData.getOrigin();
+    const [xSpacing, ySpacing, zSpacing] = vtkImageData.getSpacing();
+    const [xMin, xMax, yMin, yMax, zMin, zMax] = vtkImageData.getExtent();
+
+    // const centerOfVolume = vec3.fromValues(
+    //     x0 + xSpacing * 0.5 * (xMin + xMax),
+    //     y0 + ySpacing * 0.5 * (yMin + yMax),
+    //     z0 + zSpacing * 0.5 * (zMin + zMax)
+    // )
+
+    // We use inverted z, so...
+    const zStart = z0 + zSpacing * (zMax - zMin);
+
+    if(plane === 'axial') {
+        planedIpp = [
+            x0, // sag's 0?
+            y0, // cor's 0?,
+            ippVec3[2] // axe
+        ];
+    }else if(plane === 'coronal'){
+        planedIpp = [
+            x0, // sag's 0?
+            ippVec3[1], // cor
+            zStart // Axial's 0?
+        ];
+    }else {
+        planedIpp = [
+            ippVec3[0], // sag
+            y0, // Coronal's 0?,
+            zStart // Axial's 0?
+        ];
+    }
+
     // Maths
     // TODO: Move `computeTopLeftIpp` to tool(s)
     // TODO: MetaDataProvider to grab `volumeSpacing` and `volumeExtent` for a given volume?
     // const topLeftOfImageIPP = computeTopLeftIpp(rowCosinesVec3, colCosinesVec3, ippVec3, volumeSpacing, volumeExtent)
     const axes = _calculateRotationAxes(rowCosinesVec3, colCosinesVec3, ippVec3);
-    // mat4.rotateX(axes, axes, options.rotation * Math.PI / 180);
+
+    const degreesToRotate = 90;
+    const radians = degreesToRotate * (Math.PI / 180);
+    let rotatedAxes = mat4.clone(axes);
+    // mat4.rotateX(rotatedAxes, rotatedAxes, radians) // axial --> coronal (upside down)
+    mat4.rotateY(rotatedAxes, rotatedAxes, radians) // axial --> Sagittal ()
+
 
     // Setup vtkImageReslice
     const imageReslice = vtkImageReslice.newInstance();
     imageReslice.setInputData(vtkImageData);                // Our volume
     imageReslice.setOutputDimensionality(2);                // We want a "slice", not a volume
     imageReslice.setBackgroundColor(255, 255, 255, 255);    // Black background
-    imageReslice.setResliceAxes(axes);                      // Rotational Axes
+
+    // if(plane === 'axial'){
+    // https://keisan.casio.com/exec/system/1223522781
+    //     console.log('normal:', axes)
+    //     console.log('rotated:', rotatedAxes)
+    //     imageReslice.setResliceAxes(rotatedAxes);                      // Rotational Axes
+    // }else{
+        imageReslice.setResliceAxes(axes);                      // Rotational Axes
+    //}
 
     // Pull the lever!
     const outputSlice = imageReslice.getOutputData();
     const spacing = outputSlice.getSpacing();
     const dimensions = outputSlice.getDimensions();
-
+    
     const result = {
         slice: outputSlice,
         metaData: {
             imagePlaneModule: {
+                // ippCenter: [ippCenter[0], ippCenter[1], ippCenter[2]],
+                // ippTopLeft: [axes[12], axes[13], axes[14]],
+                ippPlaned: planedIpp,
+                referenceLineColor: color,
+                //
+                imageOrientationPatient: [
+                    axes[0], axes[1], axes[2],
+                    axes[4], axes[5], axes[6]
+                ],
+                //
                 imagePositionPatient: [axes[12], axes[13], axes[14]],
                 rowCosines: [axes[0], axes[1], axes[2]],
                 columnCosines: [axes[4], axes[5], axes[6]],
