@@ -79,13 +79,15 @@ async function _createVtkVolume(seriesImageIds, dimensions, spacing, zAxis){
         const { imagePositionPatient } = await tryGetMetadataModuleAsync('imagePlaneModule', imageId);
         const sliceIndex = getSliceIndex(zAxis, imagePositionPatient);
 
-        // Vertical flips sagittal/coronal
+        insertSlice(vtkVolume, image.getPixelData(), sliceIndex);
+
+        // TODO: Inverting Slice Index: Vertical flips sagittal/coronal
         // const flipped = Math.abs(sliceIndex - seriesImageIds.length);
         // insertSlice(vtkVolume, image.getPixelData().reverse(), flipped);
-        // console.log(sliceIndex, flipped)
 
-        // .reverse() flips the input image pixelData vertically
-        insertSlice(vtkVolume, image.getPixelData().reverse(), sliceIndex);
+        // TODO: .reverse() vertically flips axial
+        // TODO: Flip x/y spacing because of flip?
+        // insertSlice(vtkVolume, image.getPixelData().reverse(), sliceIndex);
     }
 
     // TODO: We can accidentally create multiple volumes if we try to create one
