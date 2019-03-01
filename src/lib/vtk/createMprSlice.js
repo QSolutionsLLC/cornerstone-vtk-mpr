@@ -35,8 +35,8 @@ export default function(vtkVolume, options = {}){
     const [xSpacing, ySpacing, zSpacing] = vtkImageData.getSpacing();
     const [xMin, xMax, yMin, yMax, zMin, zMax] = vtkImageData.getExtent();
     
-    const xStart = x0 + xSpacing * (xMax - xMin);
-    const yStart = y0 + ySpacing * (yMax - yMin);
+    //const xStart = x0 + xSpacing * (xMax - xMin);
+    //const yStart = y0 + ySpacing * (yMax - yMin);
     const zStart = z0 + zSpacing * (zMax - zMin); // Inverted z for vtk??
     console.log(zStart)
     console.log(z0, zSpacing, zMax, zMin)
@@ -53,14 +53,15 @@ export default function(vtkVolume, options = {}){
     // This is the zAxis we set as the volume origin in `createVtkVolumeAsync`
     console.log('~~ pre: ', ippVec3)
     console.log('~~ zed: ', zedCosinesVec3.join())
-    // const position = vec3.fromValues(
-    //     (zedCosinesVec3[0] * -1 * (ippVec3[0] - x0)) + x0,
-    //     (zedCosinesVec3[1] * (ippVec3[1] - y0)) + y0,
-    //     (zedCosinesVec3[2] * (ippVec3[2] - zStart)) + zStart);
     const position = vec3.fromValues(
-        ((ippVec3[0])),
-        ((ippVec3[1])),
-        ((ippVec3[2])))
+        (zedCosinesVec3[0] * -1 * (ippVec3[0] - x0)) + x0,
+        (zedCosinesVec3[1] * (ippVec3[1] - y0)) + y0,
+        (zedCosinesVec3[2] * (ippVec3[2] - zStart)) + zStart);
+    // Have to allow negative for when we rotate?
+    // const position = vec3.fromValues(
+    //     zedCosinesVec3[0] * -1 * ippVec3[0],
+    //     zedCosinesVec3[1] * ippVec3[1],
+    //     zStart + zedCosinesVec3[2] * (ippVec3[2] - zStart))
     console.log('~~ pst: ', position)
     console.log('~~~~~');
 
