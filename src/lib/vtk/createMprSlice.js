@@ -51,6 +51,8 @@ export default function(vtkVolume, options = {}){
     // --> x0, y0, zStart
     // almost like a "volume offset"?
     // This is the zAxis we set as the volume origin in `createVtkVolumeAsync`
+    // NOTE: Applying rotation of 360 degrees to sagittal and coronal fixes reference lines
+    // IE. clicking the blue handle 36 times.
     console.log('~~ pre: ', ippVec3)
     console.log('~~ zed: ', zedCosinesVec3.join())
     const position = vec3.fromValues(
