@@ -38,7 +38,7 @@ export default class MprMouseWheelTool extends BaseTool {
 
     // TODO: Use pixel spacing to determine best "step size"
     // Ideally, minimum value where we would see pixel change
-    const stepSize = 1.5;
+    const stepSize = 3;
     const iop = imagePlane.imageOrientationPatient
     const rowCosines = vec3.fromValues(iop[0], iop[1], iop[2])
     const colCosines = vec3.fromValues(iop[3], iop[4], iop[5])
@@ -48,9 +48,16 @@ export default class MprMouseWheelTool extends BaseTool {
 
     // Update position in the Zed direction
     let ipp = imagePlane.imagePositionPatient.slice();
-    ipp[0] = ipp[0] + (zedCosines[0] * stepSize * dir);
-    ipp[1] = ipp[1] + (zedCosines[1] * stepSize * dir);
-    ipp[2] = ipp[2] + (zedCosines[2] * stepSize * dir);
+    const dx = (zedCosines[0] * stepSize * dir);
+    const dy = (zedCosines[1] * stepSize * dir);
+    const dz = (zedCosines[2] * stepSize * dir);
+
+    ipp[0] += dx;
+    ipp[1] += dy;
+    ipp[2] += dz;
+
+    console.info('deltas: ', dx, dy, dz)
+    console.info('pos: ', ipp[0], ipp[1], ipp[2])
 
     const iopString = imagePlane.rowCosines.concat(imagePlane.columnCosines).join()
     const ippString = new Float32Array(ipp).join()
