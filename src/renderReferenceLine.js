@@ -14,8 +14,9 @@ const convertToVector3 = csTools('util/convertToVectro3');
  * @param  {Object} targetElement      The data associated with the event.
  * @param  {Object} targetImagePlane    The element on which to render the reference line.
  * @param  {Object} referenceImagePlane
+ * @param  {Object} [options={}]
  */
-export default function(context, targetElement, targetImagePlane, referenceImagePlane) {
+export default function(context, targetElement, targetImagePlane, referenceImagePlane, options = {}) {
 
   // Target
   const tRowCosines = convertToVector3(targetImagePlane.rowCosines);
@@ -51,7 +52,7 @@ export default function(context, targetElement, targetImagePlane, referenceImage
     return;
   }
 
-  const color = referenceImagePlane.referenceLineColor || toolColors.getActiveColor();
+  const color = options.color || toolColors.getActiveColor();
 
   // Draw the referenceLines
   context.setTransform(1, 0, 0, 1, 0, 0);
@@ -62,7 +63,10 @@ export default function(context, targetElement, targetImagePlane, referenceImage
       targetElement,
       referenceLine.start,
       referenceLine.end,
-      { color }
+      { 
+        color,
+        lineWidth: 2
+      }
     );
   });
 }

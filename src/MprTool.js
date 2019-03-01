@@ -8,8 +8,9 @@ import cornerstone, {
     displayImage,
     updateImage,
   } from 'cornerstone-core'
-  import {
+  import cornerstoneTools, {
     addToolState,
+    clearToolState,
     getToolState,
     import as csTools,
     setToolDisabled,
@@ -68,14 +69,28 @@ import cornerstone, {
       this.initialConfiguration = initialConfiguration
       this.mergeOptions(initialConfiguration.options)
 
+      //
       this.updatePoint = _updatePoint.bind(this)
-
       this.crossPoint = { x: 0, y: 0 };
-      this.syncedId = null
+
+      //
     }
 
     activeCallback(element, options) {
-
+      cornerstoneTools.clearToolState(this.element, this.name)
+      cornerstoneTools.addToolState(this.element, this.name, {
+        visible: true,
+        active: true,
+        color: options.color,
+        handles: {
+          end: {
+            x: 50,
+            y: 50,
+            highlight: true,
+            active: true,
+          },
+        },
+      });
     }
 
     passiveCallback(element, options) {
@@ -97,23 +112,6 @@ import cornerstone, {
       //     updateImage(enabledElement)
       //   }
       // })
-    }
-
-    createNewMeasurement(eventData) {
-      return {
-        visible: true,
-        active: true,
-        color: undefined,
-        //
-        handles: {
-          end: {
-            x: 50,
-            y: 50,
-            highlight: true,
-            active: true,
-          },
-        },
-      };
     }
 
     // BaseAnnotationTool, despite no persistent
@@ -216,21 +214,10 @@ import cornerstone, {
         return;
       }
 
-      let toolData = getToolState(element, this.name)
+      const toolData = getToolState(element, this.name)
       const context = getNewContext(eventData.canvasContext.canvas);
 
       draw(context, context => {
-
-        // Create toolData if it does not exist
-        if(!toolData){
-
-          console.warn('creating tool data in render')
-          const measurementData = this.createNewMeasurement(eventData);
-
-          addToolState(element, this.name, measurementData);
-          toolData = getToolState(element, this.name);
-        }
-
         // Configurable shadow
         setShadow(context, this.configuration);
 
@@ -269,8 +256,11 @@ import cornerstone, {
         const imagePlane = metaData.get('imagePlaneModule', image.imageId);
         // REFERENCE
         const refImagePlane = metaData.get('imagePlaneModule', refImage.imageId);
+        const refToolState = getToolState(refElement, this.name).data[0]
 
-        renderReferenceLine(context, element, imagePlane, refImagePlane)
+        renderReferenceLine(context, element, imagePlane, refImagePlane, {
+          color: refToolState.color
+        })
       });
     }
 
@@ -397,15 +387,6 @@ import cornerstone, {
       });
 
       // SET CROSS POINT
-      let toolData = getToolState(targetElement, this.name)
-
-      if(!toolData){
-        console.warn('creating tooldata in updatCrossPoint')
-        const measurementData = this.createNewMeasurement(eventData);
-        addToolState(targetElement, this.name, measurementData);
-        toolData = getToolState(targetElement, this.name);
-      }
-
       const crossPoint = _projectPatientPointToImagePlane(ippCrossVec3, targetImagePlane)
       this.crossPoint = crossPoint;
       

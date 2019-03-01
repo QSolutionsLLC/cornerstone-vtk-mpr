@@ -46,11 +46,21 @@ export default function(seriesNumber) {
 
     _setOriginalSeriesStackState(seriesNumber, originalSeriesElement);
 
+    // Track data for this tool using STACK state
+    cornerstoneTools.addStackStateManager(mprAxialSeriesElement, ["Mpr"])
+    cornerstoneTools.addStackStateManager(mprCoronalSeriesElement, ["Mpr"])
+    cornerstoneTools.addStackStateManager(mprSagittalSeriesElement, ["Mpr"])
+
     // Element Specific Tools
     cornerstoneTools.setToolActiveForElement(originalSeriesElement, "StackScrollMouseWheel", {});
-    cornerstoneTools.setToolActiveForElement(mprAxialSeriesElement, "MprMouseWheel", { plane: 0 });
-    cornerstoneTools.setToolActiveForElement(mprCoronalSeriesElement, "MprMouseWheel", { plane: 1 });
-    cornerstoneTools.setToolActiveForElement(mprSagittalSeriesElement, "MprMouseWheel", { plane: 2 });
+    //
+    cornerstoneTools.setToolActiveForElement(mprAxialSeriesElement, "MprMouseWheel", {});
+    cornerstoneTools.setToolActiveForElement(mprCoronalSeriesElement, "MprMouseWheel", {});
+    cornerstoneTools.setToolActiveForElement(mprSagittalSeriesElement, "MprMouseWheel", {});
+    //
+    cornerstoneTools.setToolActiveForElement(mprAxialSeriesElement, "Mpr", { mouseButtonMask: 1, color: '#9ACD32' });
+    cornerstoneTools.setToolActiveForElement(mprCoronalSeriesElement, "Mpr", { mouseButtonMask: 1, color: '#0496FF'});
+    cornerstoneTools.setToolActiveForElement(mprSagittalSeriesElement, "Mpr", { mouseButtonMask: 1, color: '#EFBDEB' });
 }
 
 function _setPeerDependencies(){
@@ -103,7 +113,6 @@ function _initCornerstoneTools(){
     cornerstoneTools.setToolActive("Pan", { mouseButtonMask: 4 }); // Middle
     cornerstoneTools.setToolActive("Zoom", { mouseButtonMask: 2 }); // Right
     // cornerstoneTools.setToolActive("Wwwc", { mouseButtonMask: 1 }); // Left & Touch
-    cornerstoneTools.setToolActive("Mpr", { mouseButtonMask: 1 });
     cornerstoneTools.setToolActive("PanMultiTouch", {});
     cornerstoneTools.setToolActive("ZoomTouchPinch", {});
 }
