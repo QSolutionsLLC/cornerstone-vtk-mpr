@@ -61,6 +61,7 @@ async function _createVtkVolume(seriesImageIds, dimensions, spacing, zAxis){
     })
 
     // TODO: Is this a better place to set this?
+    console.log('VOLUME ORIGIN: ', zAxis.origin)
     vtkVolume.setOrigin(zAxis.origin)
     vtkVolume.setDimensions(dimensions)
     vtkVolume.setSpacing(spacing)

@@ -46,6 +46,16 @@ export default function(seriesNumber) {
 
     _setOriginalSeriesStackState(seriesNumber, originalSeriesElement);
 
+    cornerstoneTools.addToolForElement(mprAxialSeriesElement, MprTool, {
+        configuration: { rotationAxis: 'Y' }
+    });
+    cornerstoneTools.addToolForElement(mprCoronalSeriesElement, MprTool, {
+        configuration: { rotationAxis: 'X' }
+    });
+    cornerstoneTools.addToolForElement(mprSagittalSeriesElement, MprTool, {
+        configuration: { rotationAxis: 'X' }
+    });
+
     // Track data for this tool using STACK state
     cornerstoneTools.addStackStateManager(mprAxialSeriesElement, ["Mpr"])
     cornerstoneTools.addStackStateManager(mprCoronalSeriesElement, ["Mpr"])
@@ -58,9 +68,9 @@ export default function(seriesNumber) {
     cornerstoneTools.setToolActiveForElement(mprCoronalSeriesElement, "MprMouseWheel", {});
     cornerstoneTools.setToolActiveForElement(mprSagittalSeriesElement, "MprMouseWheel", {});
     //
-    cornerstoneTools.setToolActiveForElement(mprAxialSeriesElement, "Mpr", { mouseButtonMask: 1, color: '#9ACD32' });
-    cornerstoneTools.setToolActiveForElement(mprCoronalSeriesElement, "Mpr", { mouseButtonMask: 1, color: '#0496FF'});
-    cornerstoneTools.setToolActiveForElement(mprSagittalSeriesElement, "Mpr", { mouseButtonMask: 1, color: '#EFBDEB' });
+    cornerstoneTools.setToolActiveForElement(mprAxialSeriesElement, "Mpr", { mouseButtonMask: 1, color: '#9ACD32', cosines: "1,0,0,0,1,0" });
+    cornerstoneTools.setToolActiveForElement(mprCoronalSeriesElement, "Mpr", { mouseButtonMask: 1, color: '#0496FF', cosines: "1,0,0,0,0,-1" });
+    cornerstoneTools.setToolActiveForElement(mprSagittalSeriesElement, "Mpr", { mouseButtonMask: 1, color: '#EFBDEB', cosines: "0,1,0,0,0,-1" });
 }
 
 function _setPeerDependencies(){
@@ -102,7 +112,7 @@ function _initCornerstoneTools(){
     cornerstoneTools.addTool(PanTool);
     cornerstoneTools.addTool(ZoomTool);
     cornerstoneTools.addTool(WwwcTool);
-    cornerstoneTools.addTool(MprTool);
+    // cornerstoneTools.addTool(MprTool);
     cornerstoneTools.addTool(PanMultiTouchTool);
     cornerstoneTools.addTool(StackScrollMouseWheelTool);
     cornerstoneTools.addTool(ZoomTouchPinchTool);

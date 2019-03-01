@@ -60,6 +60,7 @@ import cornerstone, {
           shadowColor: '#000000',
           shadowOffsetX: 1,
           shadowOffsetY: 1,
+          rotationAxis: 'Y'
         },
       }
       const initialConfiguration = Object.assign(defaultConfig, configuration)
@@ -82,6 +83,8 @@ import cornerstone, {
         visible: true,
         active: true,
         color: options.color,
+        initCosines: options.cosines,
+        appliedAngleRadians: 0,
         handles: {
           end: {
             x: 50,
@@ -136,10 +139,6 @@ import cornerstone, {
             return;
           }
 
-          const toolData = getToolState(element, this.name)
-          // const myMagicAngle = this._findAngle(toolData);
-          const myMagicAngle = 0.0174533 * 10;
-
           // Apply angle
           // TODO: We care about delta, not new angle
           // TODO: Unless each slice saves a copy of "original" axes
@@ -156,13 +155,28 @@ import cornerstone, {
               return;
             }
 
+            const refToolState = getToolState(refElement, this.name).data[0];
+            console.log('tool state: ', refToolState)
+            
+            // const myMagicAngle = this._findAngle(toolData);
+            const deltaRotation = 0.0174533 * 10;
+            refToolState.appliedAngleRadians += deltaRotation;
+  
+            const deltaRotationInDegrees = deltaRotation * (180 / Math.PI)
+            const angleInDegrees = refToolState.appliedAngleRadians * (180 / Math.PI)
+            
+            console.log('deltaRotation: ', deltaRotationInDegrees)
+            console.log('applied angle: ', angleInDegrees)
+
+            const rotateFn = mat4[`rotate${this.configuration.rotationAxis}`]
             const refImagePlane = metaData.get('imagePlaneModule', refImage.imageId);
-            const rowCosines = vec3.fromValues(...refImagePlane.rowCosines);
-            const colCosines = vec3.fromValues(...refImagePlane.columnCosines);
+            const refCosines = refToolState.initCosines.split(',').map(parseFloat);
+            const rowCosines = vec3.fromValues(refCosines[0], refCosines[1], refCosines[2]); //vec3.fromValues(...refImagePlane.rowCosines);
+            const colCosines = vec3.fromValues(refCosines[3], refCosines[4], refCosines[5]); //vec3.fromValues(...refImagePlane.columnCosines);
             const ippArray = vec3.fromValues(...refImagePlane.imagePositionPatient);
     
             let axes = _calculateRotationAxes(rowCosines, colCosines, ippArray);
-            axes = mat4.rotateY(axes, axes, myMagicAngle);
+            axes = rotateFn(axes, axes, refToolState.appliedAngleRadians);
 
             console.log('ROTATED MATRIX', axes)
     
