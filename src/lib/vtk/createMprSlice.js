@@ -1,18 +1,6 @@
 import { mat4, vec3 } from 'gl-matrix';
 import vtkImageReslice from 'vtk.js/Sources/Imaging/Core/ImageReslice';
 
-
-// http://vtk.1045678.n5.nabble.com/vtkImageReslice-and-appending-slices-td5728537.html
-// https://public.kitware.com/pipermail/vtkusers/2012-January/071996.html
-// http://vtk.1045678.n5.nabble.com/vtkImageReslice-Rendering-slice-is-stretched-for-oblique-planes-if-no-OutputExtent-is-set-td5148691.html
-// However, when you use vtkImageReslice to do oblique
-// slices, I recommend that you always set the OutputExtent,
-// OutputSpacing, and OutputOrigin for vtkImageReslice.
-// The code that vtkImageReslice uses to "guess" these
-// values is really only useful for orthogonal reslicing.
-// https://vtkusers.public.kitware.narkive.com/HgihE8by/adjusting-vtkimagereslice-extent-when-slicing-a-volume
-
-
 /**
  *
  * @function createMprSlice
