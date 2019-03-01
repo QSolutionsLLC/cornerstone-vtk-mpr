@@ -159,7 +159,7 @@ import cornerstone, {
             console.log('tool state: ', refToolState)
             
             // const myMagicAngle = this._findAngle(toolData);
-            const deltaRotation = 0.0174533 * 10;
+            const deltaRotation = 0.0174533 * 360; // 10;
             refToolState.appliedAngleRadians += deltaRotation;
   
             const deltaRotationInDegrees = deltaRotation * (180 / Math.PI)
