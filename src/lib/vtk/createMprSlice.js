@@ -45,10 +45,14 @@ export default function(vtkVolume, options = {}){
     // "origin"
     // --> x0, y0, zStart
     // almost like a "volume offset"?
+    // This is the zAxis we set as the volume origin in `createVtkVolumeAsync`
+    console.log('pre position adjust: ', ippVec3)
     const position = vec3.fromValues(
-        (zedCosinesVec3[0] * -1 * (ippVec3[0] - x0)) + x0,
+        // (zedCosinesVec3[0] * (ippVec3[0] - x0)) + x0,
+        (zedCosinesVec3[0] * (ippVec3[0] - x0)) + x0,
         (zedCosinesVec3[1] * (ippVec3[1] - y0)) + y0,
         (zedCosinesVec3[2] * (ippVec3[2] - zStart)) + zStart);
+    console.log('post position adjust: ', position)
 
     // Maths
     // TODO: MetaDataProvider to grab `volumeSpacing` and `volumeExtent` for a given volume?
