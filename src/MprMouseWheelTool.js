@@ -3,8 +3,6 @@ import { import as csTools, store } from 'cornerstone-tools';
 import getMprUrl from './lib/getMprUrl.js';
 import { vec3 } from 'gl-matrix';
 
-
-
 const BaseTool = csTools('base/BaseTool')
 
 /**
@@ -60,18 +58,21 @@ export default class MprMouseWheelTool extends BaseTool {
 
     cornerstone.loadAndCacheImage(mprImageUrl).then(image => {
         cornerstone.displayImage(element, image);
-
-        store.state.enabledElements.forEach(refElement => {
-          const refImage = cornerstone.getImage(refElement)
-
-          // Don't draw reference line for non-mpr
-          if(!refImage || !refImage.imageId.includes('mpr')){
-            // console.warn('skipping; wrong image scheme');
-            return;
-          }
-
-          cornerstone.updateImage(refElement);
-        });
+        _updateAllMprEnabledElements();
     })
   }
+}
+
+/**
+ *
+ *
+ */
+function _updateAllMprEnabledElements(){
+  store.state.enabledElements.forEach(refElement => {
+    const refImage = cornerstone.getImage(refElement)
+
+    if(refImage && refImage.imageId.includes('mpr')){
+      cornerstone.updateImage(refElement);
+    }
+  });
 }
