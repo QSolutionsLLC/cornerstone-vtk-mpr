@@ -238,7 +238,7 @@ import cornerstone, {
         // Configure the handles
         const handleOptions = {
           color: 'dodgerblue',
-          handleRadius: 15,
+          handleRadius: 5,
           drawHandlesIfActive: false,
         };
         
