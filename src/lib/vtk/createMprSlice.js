@@ -32,19 +32,7 @@ export default function(vtkVolume, options = {}){
     const iop = options.imageOrientationPatient || "1,0,0,0,1,0";
     const ipp = options.imagePositionPatient || "0,0,0"; // Top Left of slice
 
-    const plane = iop === "1,0,0,0,1,0"
-        ? 'axial'
-        : iop === "1,0,0,0,0,-1"
-        ? 'coronal'
-        : 'sagittal'
-
-    const color = plane === 'axial'
-        ? 'pink'
-        : plane === 'coronal'
-        ? 'dodgerblue'
-        : 'yellowgreen'
-
-    // Inputs to vec3
+    // Find our position in ZED, and our reslice axes
     const iopArray = iop.split(',').map(parseFloat);
     const rowCosinesVec3 = vec3.fromValues(iopArray[0], iopArray[1], iopArray[2]);
     const colCosinesVec3 = vec3.fromValues(iopArray[3], iopArray[4], iopArray[5]);
@@ -67,42 +55,15 @@ export default function(vtkVolume, options = {}){
     // )
 
     // "origin"
-    // x0, y0, zStart
+    // --> x0, y0, zStart
     // almost like a "volume offset"?
     const position = vec3.fromValues(
         (zedCosinesVec3[0] * -1 * (ippVec3[0] - x0)) + x0,
         (zedCosinesVec3[1] * (ippVec3[1] - y0)) + y0,
         (zedCosinesVec3[2] * (ippVec3[2] - zStart)) + zStart);
 
-    console.log(position)
-    console.log(ippVec3)
-
-    // let planedIpp;
-    // if(plane === 'axial') {
-    //     planedIpp = [
-    //         x0, // sag's 0?
-    //         y0, // cor's 0?,
-    //         ippVec3[2] // axe
-    //     ];
-    // }else if(plane === 'coronal'){
-    //     planedIpp = [
-    //         x0, // sag's 0?
-    //         ippVec3[1], // cor
-    //         zStart // Axial's 0?
-    //     ];
-    // }else {
-    //     planedIpp = [
-    //         ippVec3[0], // sag
-    //         y0, // Coronal's 0?,
-    //         zStart // Axial's 0?
-    //     ];
-    // }
-
     // Maths
-    // TODO: Move `computeTopLeftIpp` to tool(s)
     // TODO: MetaDataProvider to grab `volumeSpacing` and `volumeExtent` for a given volume?
-    // const topLeftOfImageIPP = computeTopLeftIpp(rowCosinesVec3, colCosinesVec3, ippVec3, volumeSpacing, volumeExtent)
-    //const axes = _calculateRotationAxes(rowCosinesVec3, colCosinesVec3, ippVec3);
     const axes = _calculateRotationAxes(rowCosinesVec3, colCosinesVec3, position);
     
     // Setup vtkImageReslice
@@ -121,14 +82,10 @@ export default function(vtkVolume, options = {}){
         slice: outputSlice,
         metaData: {
             imagePlaneModule: {
-                ippPlaned: position,
-                referenceLineColor: color,
-                //
                 imageOrientationPatient: [
                     axes[0], axes[1], axes[2],
                     axes[4], axes[5], axes[6]
                 ],
-                //
                 imagePositionPatient: [axes[12], axes[13], axes[14]],
                 rowCosines: [axes[0], axes[1], axes[2]],
                 columnCosines: [axes[4], axes[5], axes[6]],
