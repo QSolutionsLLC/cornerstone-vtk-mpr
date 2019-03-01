@@ -34,7 +34,12 @@ export default function(vtkVolume, options = {}){
     const [x0, y0, z0] = vtkImageData.getOrigin();
     const [xSpacing, ySpacing, zSpacing] = vtkImageData.getSpacing();
     const [xMin, xMax, yMin, yMax, zMin, zMax] = vtkImageData.getExtent();
+    
+    const xStart = x0 + xSpacing * (xMax - xMin);
+    const yStart = y0 + ySpacing * (yMax - yMin);
     const zStart = z0 + zSpacing * (zMax - zMin); // Inverted z for vtk??
+    console.log(zStart)
+    console.log(z0, zSpacing, zMax, zMin)
 
     // const centerOfVolume = vec3.fromValues(
     //     x0 + xSpacing * 0.5 * (xMin + xMax),
@@ -46,13 +51,18 @@ export default function(vtkVolume, options = {}){
     // --> x0, y0, zStart
     // almost like a "volume offset"?
     // This is the zAxis we set as the volume origin in `createVtkVolumeAsync`
-    console.log('pre position adjust: ', ippVec3)
+    console.log('~~ pre: ', ippVec3)
+    console.log('~~ zed: ', zedCosinesVec3.join())
+    // const position = vec3.fromValues(
+    //     (zedCosinesVec3[0] * -1 * (ippVec3[0] - x0)) + x0,
+    //     (zedCosinesVec3[1] * (ippVec3[1] - y0)) + y0,
+    //     (zedCosinesVec3[2] * (ippVec3[2] - zStart)) + zStart);
     const position = vec3.fromValues(
-        // (zedCosinesVec3[0] * (ippVec3[0] - x0)) + x0,
-        (zedCosinesVec3[0] * (ippVec3[0] - x0)) + x0,
-        (zedCosinesVec3[1] * (ippVec3[1] - y0)) + y0,
-        (zedCosinesVec3[2] * (ippVec3[2] - zStart)) + zStart);
-    console.log('post position adjust: ', position)
+        ((ippVec3[0])),
+        ((ippVec3[1])),
+        ((ippVec3[2])))
+    console.log('~~ pst: ', position)
+    console.log('~~~~~');
 
     // Maths
     // TODO: MetaDataProvider to grab `volumeSpacing` and `volumeExtent` for a given volume?

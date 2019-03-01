@@ -62,7 +62,11 @@ async function _createVtkVolume(seriesImageIds, dimensions, spacing, zAxis){
 
     // TODO: Is this a better place to set this?
     console.log('VOLUME ORIGIN: ', zAxis.origin)
-    vtkVolume.setOrigin(zAxis.origin)
+    // Our recommended three-step method for
+    // handling DICOM coordinates in VTK are to undo any vertical flip applied to the data by the reader, set the
+    // origin to zero, and build the above 4×4 matrix from the DICOM metadata.
+    // vtkVolume.setOrigin(zAxis.origin)
+    vtkVolume.setOrigin([0, 0, 0]) // zMax * zPixelSpacing
     vtkVolume.setDimensions(dimensions)
     vtkVolume.setSpacing(spacing)
     vtkVolume.getPointData().setScalars(scalarArray)
@@ -75,7 +79,13 @@ async function _createVtkVolume(seriesImageIds, dimensions, spacing, zAxis){
         const { imagePositionPatient } = await tryGetMetadataModuleAsync('imagePlaneModule', imageId);
         const sliceIndex = getSliceIndex(zAxis, imagePositionPatient);
 
-        insertSlice(vtkVolume, image.getPixelData(), sliceIndex);
+        // Vertical flips sagittal/coronal
+        // const flipped = Math.abs(sliceIndex - seriesImageIds.length);
+        // insertSlice(vtkVolume, image.getPixelData().reverse(), flipped);
+        // console.log(sliceIndex, flipped)
+
+        // .reverse() flips the input image pixelData vertically
+        insertSlice(vtkVolume, image.getPixelData().reverse(), sliceIndex);
     }
 
     // TODO: We can accidentally create multiple volumes if we try to create one
