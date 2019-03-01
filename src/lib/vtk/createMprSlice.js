@@ -52,11 +52,13 @@ export default function(vtkVolume, options = {}){
         ? vtkVolume.centerIpp
         : ipp.split(',').map(parseFloat)
 
-    let planedIpp;
+    let zedCosinesVec3 = vec3.create()
+    vec3.cross(zedCosinesVec3, rowCosinesVec3, colCosinesVec3);
     
     const [x0, y0, z0] = vtkImageData.getOrigin();
     const [xSpacing, ySpacing, zSpacing] = vtkImageData.getSpacing();
     const [xMin, xMax, yMin, yMax, zMin, zMax] = vtkImageData.getExtent();
+    const zStart = z0 + zSpacing * (zMax - zMin); // Inverted z for vtk??
 
     // const centerOfVolume = vec3.fromValues(
     //     x0 + xSpacing * 0.5 * (xMin + xMax),
@@ -64,69 +66,62 @@ export default function(vtkVolume, options = {}){
     //     z0 + zSpacing * 0.5 * (zMin + zMax)
     // )
 
-    // We use inverted z, so...
-    const zStart = z0 + zSpacing * (zMax - zMin);
+    // "origin"
+    // x0, y0, zStart
+    // almost like a "volume offset"?
+    const position = vec3.fromValues(
+        (zedCosinesVec3[0] * -1 * (ippVec3[0] - x0)) + x0,
+        (zedCosinesVec3[1] * (ippVec3[1] - y0)) + y0,
+        (zedCosinesVec3[2] * (ippVec3[2] - zStart)) + zStart);
 
-    if(plane === 'axial') {
-        planedIpp = [
-            x0, // sag's 0?
-            y0, // cor's 0?,
-            ippVec3[2] // axe
-        ];
-    }else if(plane === 'coronal'){
-        planedIpp = [
-            x0, // sag's 0?
-            ippVec3[1], // cor
-            zStart // Axial's 0?
-        ];
-    }else {
-        planedIpp = [
-            ippVec3[0], // sag
-            y0, // Coronal's 0?,
-            zStart // Axial's 0?
-        ];
-    }
+    console.log(position)
+    console.log(ippVec3)
+
+    // let planedIpp;
+    // if(plane === 'axial') {
+    //     planedIpp = [
+    //         x0, // sag's 0?
+    //         y0, // cor's 0?,
+    //         ippVec3[2] // axe
+    //     ];
+    // }else if(plane === 'coronal'){
+    //     planedIpp = [
+    //         x0, // sag's 0?
+    //         ippVec3[1], // cor
+    //         zStart // Axial's 0?
+    //     ];
+    // }else {
+    //     planedIpp = [
+    //         ippVec3[0], // sag
+    //         y0, // Coronal's 0?,
+    //         zStart // Axial's 0?
+    //     ];
+    // }
 
     // Maths
     // TODO: Move `computeTopLeftIpp` to tool(s)
     // TODO: MetaDataProvider to grab `volumeSpacing` and `volumeExtent` for a given volume?
     // const topLeftOfImageIPP = computeTopLeftIpp(rowCosinesVec3, colCosinesVec3, ippVec3, volumeSpacing, volumeExtent)
-    const axes = _calculateRotationAxes(rowCosinesVec3, colCosinesVec3, ippVec3);
-
-    const degreesToRotate = 90;
-    const radians = degreesToRotate * (Math.PI / 180);
-    let rotatedAxes = mat4.clone(axes);
-    // mat4.rotateX(rotatedAxes, rotatedAxes, radians) // axial --> coronal (upside down)
-    mat4.rotateY(rotatedAxes, rotatedAxes, radians) // axial --> Sagittal ()
-
-
+    //const axes = _calculateRotationAxes(rowCosinesVec3, colCosinesVec3, ippVec3);
+    const axes = _calculateRotationAxes(rowCosinesVec3, colCosinesVec3, position);
+    
     // Setup vtkImageReslice
     const imageReslice = vtkImageReslice.newInstance();
     imageReslice.setInputData(vtkImageData);                // Our volume
     imageReslice.setOutputDimensionality(2);                // We want a "slice", not a volume
     imageReslice.setBackgroundColor(255, 255, 255, 255);    // Black background
-
-    // if(plane === 'axial'){
-    // https://keisan.casio.com/exec/system/1223522781
-    //     console.log('normal:', axes)
-    //     console.log('rotated:', rotatedAxes)
-    //     imageReslice.setResliceAxes(rotatedAxes);                      // Rotational Axes
-    // }else{
-        imageReslice.setResliceAxes(axes);                      // Rotational Axes
-    //}
+    imageReslice.setResliceAxes(axes);                      // Rotational Axes
 
     // Pull the lever!
     const outputSlice = imageReslice.getOutputData();
     const spacing = outputSlice.getSpacing();
     const dimensions = outputSlice.getDimensions();
-    
+
     const result = {
         slice: outputSlice,
         metaData: {
             imagePlaneModule: {
-                // ippCenter: [ippCenter[0], ippCenter[1], ippCenter[2]],
-                // ippTopLeft: [axes[12], axes[13], axes[14]],
-                ippPlaned: planedIpp,
+                ippPlaned: position,
                 referenceLineColor: color,
                 //
                 imageOrientationPatient: [
@@ -145,8 +140,6 @@ export default function(vtkVolume, options = {}){
             }
         }
     }
-
-    // console.log("~~~~~~ RESULT:", result)
 
     return result;
 }

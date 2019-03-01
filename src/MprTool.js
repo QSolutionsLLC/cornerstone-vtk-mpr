@@ -8,15 +8,12 @@ import cornerstone, {
     displayImage,
     updateImage,
   } from 'cornerstone-core'
-  import { Vector3 } from 'cornerstone-math';
   import {
     addToolState,
     getToolState,
-    clearToolState,
     import as csTools,
     setToolDisabled,
     store,
-    toolColors,
   } from 'cornerstone-tools'
 
   import renderReferenceLine from './renderReferenceLine.js';
@@ -270,38 +267,10 @@ import cornerstone, {
 
         // CURRENT
         const imagePlane = metaData.get('imagePlaneModule', image.imageId);
-        const imagePlanePrime = {
-          referenceLineColor: imagePlane.referenceLineColor,
-          // TODO: DIRTY
-          //imagePositionPatient: imagePlane.imagePositionPatient,
-          imagePositionPatient: imagePlane.ippPlaned,
-          rowCosines: imagePlane.rowCosines,
-          columnCosines: imagePlane.columnCosines,
-          rowPixelSpacing: imagePlane.rowPixelSpacing,
-          columnPixelSpacing: imagePlane.columnPixelSpacing,
-          frameOfReferenceUID: imagePlane.frameOfReferenceUID,
-          columns: imagePlane.columns,
-          rows: imagePlane.rows
-        };
-
         // REFERENCE
         const refImagePlane = metaData.get('imagePlaneModule', refImage.imageId);
-        const refImagePlanePrime = {
-          referenceLineColor: refImagePlane.referenceLineColor,
-          // TODO: DIRTY
-          // imagePositionPatient: refImagePlane.imagePositionPatient,
-          imagePositionPatient: refImagePlane.ippPlaned,
-          rowCosines: refImagePlane.rowCosines,
-          columnCosines: refImagePlane.columnCosines,
-          rowPixelSpacing: refImagePlane.rowPixelSpacing,
-          columnPixelSpacing: refImagePlane.columnPixelSpacing,
-          frameOfReferenceUID: refImagePlane.frameOfReferenceUID,
-          columns: refImagePlane.columns,
-          rows: refImagePlane.rows
-        };
 
-        renderReferenceLine(context, element, imagePlanePrime, refImagePlanePrime)
-        // renderReferenceLine(context, element, imagePlane, refImagePlane)
+        renderReferenceLine(context, element, imagePlane, refImagePlane)
       });
     }
 
@@ -393,25 +362,8 @@ import cornerstone, {
     const ippVec3 = vec3.fromValues(ipp.x, ipp.y, ipp.z)
 
     // CROSSHAIR ONLY
-    const planePrime = {
-      // ippCenter: [ippCenter[0], ippCenter[1], ippCenter[2]],
-      // ippTopLeft: [axes[12], axes[13], axes[14]], 
-      referenceLineColor: imagePlane.referenceLineColor,
-      //
-      //imagePositionPatient: imagePlane.imagePositionPatient,
-      imagePositionPatient: imagePlane.ippPlaned,
-      rowCosines: imagePlane.rowCosines,
-      columnCosines: imagePlane.columnCosines,
-      rowPixelSpacing: imagePlane.rowPixelSpacing,
-      columnPixelSpacing: imagePlane.columnPixelSpacing,
-      frameOfReferenceUID: imagePlane.frameOfReferenceUID,
-      columns: imagePlane.columns,
-      rows: imagePlane.rows
-    };
-    const ippCross = imagePointToPatientPoint(imagePointXY, planePrime)
+    const ippCross = imagePointToPatientPoint(imagePointXY, imagePlane)
     const ippCrossVec3 = vec3.fromValues(ippCross.x, ippCross.y, ippCross.z)
-
-    const ippTopLeftVec3 = await _findIppTopLeftForVolume(imagePlane, ippVec3)
 
     store.state.enabledElements.forEach(targetElement => {
       let targetImage;
@@ -435,28 +387,14 @@ import cornerstone, {
       // Load image w/ same IOP, but w/ updated IPP
       const targetImagePlane = metaData.get('imagePlaneModule', targetImage.imageId);
       const iopString = targetImagePlane.rowCosines.concat(targetImagePlane.columnCosines).join()
-      const ippString = new Float32Array([ippTopLeftVec3[0], ippTopLeftVec3[1], ippTopLeftVec3[2]]).join()
+      const ippString = new Float32Array([ippVec3[0], ippVec3[1], ippVec3[2]]).join()
+      
       const mprImageId = getMprUrl(iopString, ippString);
 
       // LOADS IMAGE
       loadAndCacheImage(mprImageId).then(image =>{
         displayImage(targetElement, image, getViewport(targetElement))
       });
-
-      const imagePlanePrime = {
-        referenceLineColor: targetImagePlane.referenceLineColor,
-        // TODO: 
-        //imagePositionPatient: imagePlane.imagePositionPatient,
-        imagePositionPatient: targetImagePlane.ippPlaned,
-        rowCosines: targetImagePlane.rowCosines,
-        columnCosines: targetImagePlane.columnCosines,
-        rowPixelSpacing: targetImagePlane.rowPixelSpacing,
-        columnPixelSpacing: targetImagePlane.columnPixelSpacing,
-        frameOfReferenceUID: targetImagePlane.frameOfReferenceUID,
-        columns: targetImagePlane.columns,
-        rows: targetImagePlane.rows
-      };
-
 
       // SET CROSS POINT
       let toolData = getToolState(targetElement, this.name)
@@ -468,7 +406,7 @@ import cornerstone, {
         toolData = getToolState(targetElement, this.name);
       }
 
-      const crossPoint = _projectPatientPointToImagePlane(ippCrossVec3, imagePlanePrime)
+      const crossPoint = _projectPatientPointToImagePlane(ippCrossVec3, targetImagePlane)
       this.crossPoint = crossPoint;
       
       // Force redraw
@@ -479,47 +417,46 @@ import cornerstone, {
     updateImage(element)
   }
 
-// TODO: We need something easier for store/retrieve/delete/clear than this
-// TODO: Not sure if there is a pattern we can repurpose or if this is a new thing
-async function _findIppTopLeftForVolume(imagePlane, ippCenter){
+// // TODO: We need something easier for store/retrieve/delete/clear than this
+// // TODO: Not sure if there is a pattern we can repurpose or if this is a new thing
+// async function _findIppTopLeftForVolume(imagePlane, ippCenter){
 
-  const rowCosines = imagePlane.rowCosines; 
-  const colCosines = imagePlane.columnCosines;
+//   const rowCosines = imagePlane.rowCosines; 
+//   const colCosines = imagePlane.columnCosines;
 
-  // TODO: For "SeriesInstanceNumber" instead of series number?
-  // TODO: Or should we create a GUID per volume?
-  const vtkVolume = await tryGetVtkVolumeForSeriesNumber(0);
-  const vtkImageData = vtkVolume.vtkImageData;
-  const spacing = vtkImageData.getSpacing();
-  const extent = vtkImageData.getExtent();
+//   // TODO: For "SeriesInstanceNumber" instead of series number?
+//   // TODO: Or should we create a GUID per volume?
+//   const vtkVolume = await tryGetVtkVolumeForSeriesNumber(0);
+//   const vtkImageData = vtkVolume.vtkImageData;
+//   const spacing = vtkImageData.getSpacing();
+//   const extent = vtkImageData.getExtent();
 
-  // console.log('INPUT IPP:', ippCenter)
-  const topLeftIpp = _computeIppTopLeftForCenter(rowCosines, colCosines, ippCenter, spacing, extent);
+//   const topLeftIpp = _computeIppTopLeftForCenter(rowCosines, colCosines, ippCenter, spacing, extent);
 
-  return topLeftIpp;
-}
+//   return topLeftIpp;
+// }
 
-function _computeIppTopLeftForCenter(rowCosines, colCosines, ippCenter, spacing, extent) {
-  const distance = vec3.fromValues(
-    spacing[0] * extent[1],
-    spacing[1] * extent[3],
-    spacing[2] * extent[5]
-  );
+// function _computeIppTopLeftForCenter(rowCosines, colCosines, ippCenter, spacing, extent) {
+//   const distance = vec3.fromValues(
+//     spacing[0] * extent[1],
+//     spacing[1] * extent[3],
+//     spacing[2] * extent[5]
+//   );
 
-  let colTranslate = vec3.create();
-  vec3.multiply(colTranslate, colCosines, distance);
-  vec3.scale(colTranslate, colTranslate, -0.5);
+//   let colTranslate = vec3.create();
+//   vec3.multiply(colTranslate, colCosines, distance);
+//   vec3.scale(colTranslate, colTranslate, -0.5);
 
-  let rowTranslate = vec3.create();
-  vec3.multiply(rowTranslate, rowCosines, distance);
-  vec3.scale(rowTranslate, rowTranslate, -0.5);
+//   let rowTranslate = vec3.create();
+//   vec3.multiply(rowTranslate, rowCosines, distance);
+//   vec3.scale(rowTranslate, rowTranslate, -0.5);
 
-  const topLeftIpp = vec3.create();
-  vec3.add(topLeftIpp, ippCenter, colTranslate);
-  vec3.add(topLeftIpp, topLeftIpp, rowTranslate);
+//   const topLeftIpp = vec3.create();
+//   vec3.add(topLeftIpp, ippCenter, colTranslate);
+//   vec3.add(topLeftIpp, topLeftIpp, rowTranslate);
 
-  return topLeftIpp;
-}
+//   return topLeftIpp;
+// }
 
 function _projectPatientPointToImagePlane(patientPoint, imagePlane) {
   const rowCosines = imagePlane.rowCosines;
