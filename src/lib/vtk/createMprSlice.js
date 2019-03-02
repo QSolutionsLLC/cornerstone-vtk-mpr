@@ -82,6 +82,8 @@ export default function(vtkVolume, options = {}){
     const outputSlice = imageReslice.getOutputData();
     const spacing = outputSlice.getSpacing();
     const dimensions = outputSlice.getDimensions();
+    const bounds = outputSlice.getBounds();
+    console.log(spacing, dimensions, bounds)
 
     const result = {
         slice: outputSlice,

@@ -175,6 +175,15 @@ import cornerstone, {
             const colCosines = vec3.fromValues(refCosines[3], refCosines[4], refCosines[5]); //vec3.fromValues(...refImagePlane.columnCosines);
             const ippArray = vec3.fromValues(...refImagePlane.imagePositionPatient);
     
+            // TODO: http://vtk.1045678.n5.nabble.com/vtkImageReslice-rotation-when-not-about-center-of-image-td5740925.html
+            // TODO: When rotating, we may need to:
+            // I cannot recommend using SetResliceAxesOrigin() to set the center of rotation.  Instead, it's best to build the 4x4 matrix that does the transformation that you need, and call SetResliceAxes(matrix).
+            // For rotation around a point, you need a matrix that translates the center-of-rotation to (0,0,0), applies a rotation about (0,0,0), and then translates back again.
+            // https://public.kitware.com/pipermail/vtkusers/2010-July/061266.html
+            // ^^ Interesting info in "next" messages
+            // THIS IS THE WINNER: https://markmail.org/message/ycfr246az23acrl7
+            // Transform may not yet exist w/ reslice:
+            // https://kitware.github.io/vtk-js/api/Imaging_Core_ImageReslice.html
             let axes = _calculateRotationAxes(rowCosines, colCosines, ippArray);
             axes = rotateFn(axes, axes, refToolState.appliedAngleRadians);
 
